@@ -68,6 +68,8 @@
     padding:var(--sp-3); background:var(--surface); border:1px solid var(--line);
     border-radius:var(--r-card); box-shadow:var(--shadow-card); }
   #dockcount{ display:none; text-align:left; }   /* mirrored counter, shown only in the landscape rail */
+  .railhead{ display:none; }                     /* brand block (cyan eyebrow + Plink title + count), landscape rail only */
+  .railtitle{ margin:0; font-weight:800; letter-spacing:-.022em; line-height:.95; }
   #dockcount .num{ font-family:var(--mono); font-size:22px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
   #dockcount .lab{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin-top:4px; }
 
@@ -192,7 +194,10 @@
     .dock .slider{ grid-column:1 / -1; }
     .dock .stat{ grid-column:1 / -1; }
     .dock #sound, .dock #resetrules{ grid-column:1 / -1; }   /* keep the odd trailing toggle from orphaning */
-    #dockcount{ display:block; padding:0 2px var(--sp-3); margin-bottom:var(--sp-1); border-bottom:1px solid var(--line); }
+    .railhead{ display:block; padding:0 2px var(--sp-3); margin-bottom:var(--sp-1); border-bottom:1px solid var(--line); }
+    .railhead-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:3px; }
+    .railtitle{ font-size:28px; }
+    #dockcount{ display:block; text-align:right; min-width:0; }
     .railfoot{ display:block; margin-top:auto; padding-top:var(--sp-3); border-top:1px solid var(--line);
       font-family:var(--serif); font-style:italic; font-size:12px; color:var(--ink-faint); text-align:center; }
   }
@@ -226,7 +231,13 @@
   </div>
 
   <div class="dock" id="dock">
-    <div class="counter" id="dockcount"><div class="num" id="dockcountnum">0</div><div class="lab" id="dockcountlab">balls dropped</div></div>
+    <div class="railhead">
+    <p class="eyebrow">Probability in motion</p>
+    <div class="railhead-row">
+      <p class="railtitle">Plink</p>
+      <div class="counter" id="dockcount"><div class="num" id="dockcountnum">0</div><div class="lab" id="dockcountlab">balls dropped</div></div>
+    </div>
+  </div>
   <div class="controls">
     <div class="group">
       <button class="primary pulse" id="drop1">Drop 1</button>
@@ -245,8 +256,8 @@
   <!-- Options layer: revealed by the Options button. Rows / speed / view toggles. -->
   <div class="controls optsrow" id="optsrow">
     <div class="group">
-      <div class="slider"><label for="rows">Rows</label><input type="range" id="rows" min="6" max="15" step="1" value="12"><output id="rowsOut">12</output></div>
-      <div class="slider"><label for="speed">Speed</label><input type="range" id="speed" min="1" max="5" step="1" value="2"><output id="speedOut">2</output></div>
+      <div class="slider"><label for="rows">Rows</label><input type="range" id="rows" min="6" max="15" step="1" value="15"><output id="rowsOut">15</output></div>
+      <div class="slider"><label for="speed">Speed</label><input type="range" id="speed" min="1" max="5" step="1" value="1"><output id="speedOut">1</output></div>
     </div>
     <div class="group">
       <button id="bell" aria-pressed="true">Bell curve</button>
@@ -285,7 +296,7 @@
   const UIFONT='800 13px ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
 
   // === CONFIG ===  shared view state + the "rig" (bias/momentum/wild) the levers set.
-  const S={ rows:12, speed:2, showBell:true, showPaths:false, sound:false, rainOn:false,
+  const S={ rows:15, speed:1, showBell:true, showPaths:false, sound:false, rainOn:false,
             guessMode:false, depth:'explore', logScale:false, compare:false,
             bias:0.5, momentum:0, wild:0 };
 
