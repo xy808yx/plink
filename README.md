@@ -10,6 +10,19 @@
 
 Plink is a single, self-contained HTML file: an interactive [Galton board](https://en.wikipedia.org/wiki/Galton_board) that teaches probability, and then quietly teaches the thing most probability lessons skip, **fat tails**.
 
+## Learn mode: a story for kids
+
+Plink now opens with a **Learn | Play** switch. Play is the free sandbox described below. **Learn** walks a kid (about 7 to 10, reading alone) through six short chapters set in a little seaside town:
+
+1. **The everyday hill.** Marbles pile into a hill, the way most waves at the beach are middle-sized.
+2. **Steps from the middle.** Sigma taught once, plainly: a step from home. One step is common, three steps almost never happen.
+3. **A leaning hill.** Tilt the machine and the hill slides over, but it stays a hill. Lean never makes giant waves.
+4. **The giant wave.** Wild jumps break the bell: one marble leaps where luck alone could never reach.
+5. **Two tails.** A fair machine races a wild one. A far jump can be the wave that smashes boats, or the treasure washing ashore. The same wildness makes both.
+6. **Your turn.** Stay safe from the scary tail, leave room for the lucky one, and go play.
+
+Each chapter runs watch-then-tinker: an auto demo plays, then the kid gets exactly one spotlighted lever and a small experiment that lights up **Next** when it actually happened. **Skip** is always available, and progress is remembered between visits.
+
 Drop marbles through a triangle of pegs. Each one bounces left or right at every row, and no one can say where a single marble will land. Drop a thousand and they always pile into the same smooth hill: the **bell curve**. That is the everyday miracle of the Central Limit Theorem, and for kids that is the whole toy. It even makes a satisfying *plink*.
 
 But the bell curve is not a law of nature. It is a **consequence of three quiet assumptions**:

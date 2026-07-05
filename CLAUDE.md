@@ -9,6 +9,11 @@ crucially, **fat tails**. "Plink" is the kid-facing name (the sound the marbles 
 fat-tails depth lives behind a **Lab** toggle. The teaching arc is: a *fair* board is a Gaussian
 factory; break independence or the fixed step size and the bell dies (Mediocristan to Extremistan).
 
+Since the Learn push there are two top-level modes behind one `Learn | Play` seg at the top of
+the dock: **Play** is the untouched sandbox; **Learn** is a six-chapter seaside story (waves =
+bell, giant wave = scary tail, treasure ashore = lucky tail) driven by a thin controller over the
+same engine. Sigma is taught exactly once, in chapter 2, as "steps from home".
+
 Credits the project leans on: **Galton** (the 1877 quincunx), **Mandelbrot** (heavy tails,
 Mediocristan/Extremistan), **Taleb** (fat tails as a worldview). See README, which leads with the
 "break the machine to reveal Extremistan" story.
@@ -47,6 +52,10 @@ The whole app is one IIFE in `index.html`. Grep for these markers:
 - `=== TAIL METRIC ===` — `boardStats()`. Mass beyond 3σ of the *naive* bell (mean `n*bias`, sd
   `sqrt(n*bias*(1-bias))`). Recentres with bias so pure bias reads ~0.3% (Gaussian), not a fake tail.
 - `=== ARCHITECTURE ===` — closing note on the Board refactor and the shared x-scale.
+- `LEARN (Push 2)` — `setLever(key,val)` (the ONLY sanctioned way to script a lever: keeps `S`,
+  the slider value, the `--fill` paint, and `applyRig`/`buildBoards` in sync), the `CHAPTERS`
+  array (copy + `setup`/`demo`/`tinkerSetup`/`begin`/`ready` per chapter), and the `learn`
+  controller (`active/idx/phase/doneNow/completed/moved`).
 
 ## The four levers (all in Lab mode)
 
@@ -133,6 +142,27 @@ reset is **Make it fair** (`#resetrules`). Do not rename the IDs.
   (peg tick) and `thud` (water-drop landing) pitch along a pentatonic map (`pent`); `chord()` is
   the rare-event chime with a sparkle partial; `startAmbient`/`stopAmbient` run the sea pad
   (detuned sines through a breathing lowpass + bandpassed surf noise) tied to the Sound toggle.
+- Learn mode (the story journey): chapters BORROW real dock controls into `#learnstage`
+  (`buildStage`/`stageClear` move the live nodes, listeners and ids travel with them, and
+  `stageClear` restores them in reverse insertion order). Never clone controls for the stage:
+  a clone would fork the listeners. Exactly ONE element carries `.spotlight` at a time. The
+  `completeWhen` gate lives in `tick()` (cheap `ready()` predicates on the live boards) so it
+  works under the manual stepper too; `Skip` never waits on it. Two gate honesty rules learned
+  the hard way: chapter 4 gates on `board.wildLanded` (a counter bumped in `settle()` when a
+  landed ball's path took a wild jump) because `farSigma>3` can be banked by a FAIR end-bin
+  ball; chapter 5's `begin()` baselines settled + airborne + pending so the watch demo's
+  still-falling balls can never complete the gate for a fast-tapping kid. Chapter narration strings live
+  in `CHAPTERS` and are innerHTML: keep them kid-plain, seaside-threaded, bold ONE idea, and
+  NEVER an em dash. In learn mode the sandbox `.controls` rows and the `.insight` strip are
+  CSS-hidden (`.app.learn ...`), so lever handlers may still write insight text harmlessly.
+  Landscape learn hides the railhead/railfoot and widens `--rail-w`; `startTinker` scrolls the
+  instruction to the top of the dock so lever + tools + Next sit in view below it.
+- Progress: localStorage `plink.progress.v1` = `{v:1, lastMode, chapter, completed[], levers{}}`,
+  written on mode/chapter/phase/completion changes, all reads/writes try/catch wrapped. On boot
+  `initLearn()` (runs after `buildBoards`, before the first frame) restores completion and, if
+  `lastMode==='learn'`, resumes the story at the saved chapter (always in `watch` phase). A fresh
+  or `play` user boots into the sandbox with default levers: stored `levers{}` are a snapshot for
+  future use, deliberately NOT restored, so Play stays exactly the fresh sandbox.
 - `preview_screenshot` caches an early pegs-only frame for this rAF canvas after a relayout. Verify
   rendering with `getImageData` pixel probes, not screenshots. NOTE: the preview tab is usually
   `document.hidden`, so rAF is throttled to zero and the canvas never animates on its own — to
