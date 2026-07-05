@@ -2,6 +2,8 @@
 
 **A fair Galton board is a Gaussian factory. Break it, and you can watch the bell curve die.**
 
+### [▶ Play it live](https://xy808yx.github.io/plink/)
+
 ![Plink demo](demo.gif)
 
 *(The GIF above is a placeholder. Replace it with a screen recording of the Lab levers in action.)*
