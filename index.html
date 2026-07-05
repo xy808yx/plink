@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Plink</title>
+<style>
+  :root{
+    --bg-top:#0c1a26; --bg-mid:#0a141d; --bg-bot:#060c12;
+    --ink:#F5EEE0; --ink-dim:rgba(245,238,224,.60); --ink-faint:rgba(245,238,224,.32);
+    --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.11);
+    --line:rgba(245,238,224,.13);
+    --amber:#FFB24C; --amber-deep:#F2743C; --honey:#FFD27A;
+    --cyan:#54ECDC; --cyan-deep:#1fb7a6;
+    --font: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Nunito", "Quicksand", system-ui, -apple-system, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family:var(--font); color:var(--ink);
+    background:
+      radial-gradient(140% 100% at 50% -20%, #163243 0%, transparent 52%),
+      linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  .app{ height:100%; display:flex; flex-direction:column; gap:11px; padding:16px clamp(10px,3vw,30px) 13px; }
+
+  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex:0 0 auto; }
+  .title-wrap{ min-width:0; }
+  .eyebrow{ font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--cyan); font-weight:700; margin:0 0 4px; }
+  h1{ font-size:clamp(23px,4.6vw,42px); line-height:.96; margin:0; font-weight:800; letter-spacing:-.022em; }
+  .plaque{ font-family:var(--serif); font-style:italic; font-size:13px; letter-spacing:.02em; color:var(--ink-faint); margin:5px 0 0; }
+  .legend{ margin:8px 0 0; font-size:12.5px; color:var(--ink-dim); font-weight:600; }
+  .legend b{ font-weight:800; } .legend .w{ color:var(--honey); } .legend .a{ color:var(--cyan); }
+  .counter{ text-align:right; flex:0 0 auto; }
+  .counter .num{ font-family:var(--mono); font-size:clamp(23px,4vw,36px); font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
+  .counter .lab{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin-top:5px; }
+
+  .cabinet{ position:relative; flex:1 1 auto; min-height:0; border-radius:22px;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.22));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 80px rgba(0,0,0,.5), 0 30px 70px -34px rgba(0,0,0,.85);
+    border:1px solid var(--line); overflow:hidden;
+    opacity:0; transform:translateY(10px) scale(.994); animation:rise .8s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+  canvas{ display:block; width:100%; height:100%; touch-action:none; }
+  .hint{ position:absolute; left:50%; bottom:15px; transform:translateX(-50%); font-size:12.5px; color:var(--ink-dim);
+    font-weight:600; pointer-events:none; background:rgba(8,14,20,.55); border:1px solid var(--line);
+    padding:6px 13px; border-radius:999px; backdrop-filter:blur(5px); transition:opacity .5s; }
+
+  .insight{ flex:0 0 auto; min-height:48px; display:flex; align-items:center; gap:11px; padding:11px 17px; border-radius:15px;
+    background:var(--surface); border:1px solid var(--line); font-size:clamp(13px,2.4vw,15.5px); font-weight:600; line-height:1.36; }
+  .insight .dot{ flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 12px var(--amber); }
+  .insight.win .dot{ background:var(--cyan); box-shadow:0 0 12px var(--cyan); }
+  .insight.miss .dot{ background:var(--honey); box-shadow:0 0 12px var(--honey); }
+  .insight code{ font-family:var(--mono); font-size:.9em; letter-spacing:.05em; background:rgba(0,0,0,.30); padding:1px 6px; border-radius:5px; color:var(--honey); }
+
+  .controls{ flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; }
+  .group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .spacer{ flex:1 1 auto; }
+  button{ font-family:var(--font); font-size:14.5px; font-weight:700; color:var(--ink); background:var(--surface);
+    border:1px solid var(--line); border-radius:12px; padding:11px 15px; min-height:44px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; transition:transform .08s, background .15s, border-color .15s, box-shadow .15s; }
+  button:hover{ background:var(--surface-2); }
+  button:active{ transform:translateY(1px) scale(.98); }
+  button:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:linear-gradient(180deg,var(--amber),var(--amber-deep)); border-color:transparent; color:#2a1405; box-shadow:0 9px 22px -11px var(--amber-deep); }
+  button.primary:hover{ filter:brightness(1.05); }
+  button.pulse{ animation:pulse 1.9s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 0 rgba(255,178,76,.5);} 50%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 11px rgba(255,178,76,0);} }
+  button[aria-pressed="true"]{ background:var(--surface-2); border-color:rgba(84,236,220,.5); box-shadow:inset 0 0 0 1px rgba(84,236,220,.25); }
+  button.rain[aria-pressed="true"]{ border-color:rgba(255,178,76,.6); box-shadow:inset 0 0 0 1px rgba(255,178,76,.3); }
+  button .live{ width:8px; height:8px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px var(--amber); animation:blink 1s ease-in-out infinite; }
+  @keyframes blink{ 50%{ opacity:.25; } }
+
+  .slider{ display:flex; align-items:center; gap:9px; padding:7px 13px; background:var(--surface); border:1px solid var(--line); border-radius:12px; min-height:44px; }
+  .slider label{ font-size:12px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
+  .slider output{ font-family:var(--mono); font-size:13px; font-weight:600; min-width:2.6em; text-align:right; font-variant-numeric:tabular-nums; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:88px; height:4px; border-radius:99px; background:rgba(245,238,224,.22); outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; box-shadow:0 2px 6px rgba(0,0,0,.45); }
+  input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; }
+  input[type=range]:focus-visible{ outline:2px solid var(--cyan); outline-offset:4px; }
+  input[type=range].wild::-webkit-slider-thumb{ background:var(--cyan); }
+  input[type=range].wild::-moz-range-thumb{ background:var(--cyan); }
+
+  /* lab (depth) row — hidden until Lab mode is on */
+  .labrow:not(.on){ display:none; }
+  .stat{ display:flex; align-items:center; gap:7px; padding:9px 14px; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; min-height:44px; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
+  .stat b{ font-family:var(--mono); font-weight:600; color:var(--honey); font-variant-numeric:tabular-nums; }
+  .stat.hot{ border-color:rgba(84,236,220,.5); } .stat.hot b{ color:var(--cyan); }
+  .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; font-style:italic; font-family:var(--serif); }
+
+  @media (max-width:560px){
+    .app{ gap:9px; padding:12px 10px 11px; }
+    .legend,.plaque{ display:none; }
+    button{ padding:10px 12px; font-size:13.5px; }
+    .group.toggles{ order:5; }
+    .stat.note{ display:none; }
+    #sigmastat{ display:none; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .cabinet{ animation:none; opacity:1; transform:none; }
+    button.pulse,.live{ animation:none; }
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="title-wrap">
+      <p class="eyebrow">Probability in motion</p>
+      <h1>Plink</h1>
+      <p class="plaque">Galton's quincunx &middot; 1877</p>
+      <p class="legend"><span class="w">&#9673; Warm</span> = the crowded middle &nbsp;·&nbsp; <span class="a">&#9673; Cyan</span> = a rare edge, a <b>perfect streak</b> or a <b>wild jump</b></p>
+    </div>
+    <div class="counter"><div class="num" id="count">0</div><div class="lab" id="countlab">balls dropped</div></div>
+  </div>
+
+  <div class="cabinet">
+    <canvas id="board"></canvas>
+    <div class="hint" id="hint">Drop one and follow it &mdash; then pour a hundred.</div>
+  </div>
+
+  <div class="insight" id="insight" aria-live="polite">
+    <span class="dot"></span>
+    <span id="insight-text">Drop a ball. You can't guess where one lands &mdash; but drop a thousand and they always make the same hill.</span>
+  </div>
+
+  <div class="controls">
+    <div class="group">
+      <button class="primary pulse" id="drop1">Drop 1</button>
+      <button id="drop100">Drop 100</button>
+      <button class="rain" id="rain" aria-pressed="false"><span id="rainface">Rain</span></button>
+      <button id="guess" aria-pressed="false">&#127919; Guess</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="group">
+      <div class="slider"><label for="rows">Rows</label><input type="range" id="rows" min="6" max="15" step="1" value="12"><output id="rowsOut">12</output></div>
+      <div class="slider"><label for="speed">Speed</label><input type="range" id="speed" min="1" max="5" step="1" value="2"><output id="speedOut">2</output></div>
+    </div>
+    <div class="group toggles">
+      <button id="bell" aria-pressed="true">Bell curve</button>
+      <button id="paths" aria-pressed="false">Show paths</button>
+      <button id="sound" aria-pressed="false">Sound</button>
+      <button id="lab" aria-pressed="false">&#129514; Lab</button>
+    </div>
+  </div>
+
+  <!-- Depth layer: revealed by Lab mode. Home of the fat-tails levers. -->
+  <div class="controls labrow" id="labrow">
+    <div class="group">
+      <div class="slider"><label for="bias">Right&nbsp;%</label><input type="range" id="bias" min="5" max="95" step="5" value="50"><output id="biasOut">50%</output></div>
+      <div class="slider"><label for="mom">Streaks</label><input type="range" id="mom" min="0" max="95" step="5" value="0"><output id="momOut">0%</output></div>
+      <div class="slider"><label for="wild">Wild</label><input class="wild" type="range" id="wild" min="0" max="30" step="2" value="0"><output id="wildOut">0%</output></div>
+    </div>
+    <div class="group">
+      <div class="stat" id="tailstat">beyond&nbsp;3&sigma; <b>0.0%</b></div>
+      <div class="stat" id="sigmastat">farthest <b>0.0&sigma;</b></div>
+      <button id="logscale" aria-pressed="false">Log&nbsp;Y</button>
+      <button id="compare" aria-pressed="false">Side&nbsp;by&nbsp;side</button>
+      <button id="resetrules">Reset rules</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="stat note">Fair machine &rarr; bell. Rig it &rarr; tails.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const cvs=document.getElementById('board'), ctx=cvs.getContext('2d');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DPR=Math.min(window.devicePixelRatio||1,2);
+  const UIFONT='800 13px ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
+
+  // === CONFIG ===  shared view state + the "rig" (bias/momentum/wild) the levers set.
+  const S={ rows:12, speed:2, showBell:true, showPaths:false, sound:false, rainOn:false,
+            guessMode:false, depth:'explore', logScale:false, compare:false,
+            bias:0.5, momentum:0, wild:0 };
+
+  // === BOARD (Lever 4) ===
+  // One Board = one machine: its own histogram, in-flight balls, effects, geometry, and its
+  // own copy of the rig. Side-by-side runs two of them so a fair board can race a rigged one.
+  function makeBoard(cfg){
+    return { bias:cfg.bias, momentum:cfg.momentum, wild:cfg.wild, label:cfg.label||'', rigged:!!cfg.rigged,
+             bins:new Map() /* slot -> count; sparse so wild outliers never index out of range */,
+             total:0, farSigma:0, balls:[], flashes:[], parts:[], pending:0, rainAcc:0, geo:{} };
+  }
+  let boards=[], primary=null, ballId=0;
+  let guessBin=null, awaitingGuess=false;
+  let dust=[], geoRoot={}, interacted=false, spriteCache={};
+
+  function buildBoards(){
+    if(S.compare){
+      boards=[ makeBoard({bias:0.5,momentum:0,wild:0,label:'Fair',rigged:false}),
+               makeBoard({bias:S.bias,momentum:S.momentum,wild:S.wild,label:'Rigged',rigged:true}) ];
+    } else {
+      boards=[ makeBoard({bias:S.bias,momentum:S.momentum,wild:S.wild,label:'',
+                          rigged:(S.bias!==0.5||S.momentum>0||S.wild>0)}) ];
+    }
+    primary=boards[0]; ballId=0; makeDust(); layoutAll(); updateCount();
+  }
+  // Levers mutate the live board(s) in place so the histogram survives a slider nudge.
+  function applyRig(){
+    if(S.compare){ const rb=boards[1]; rb.bias=S.bias; rb.momentum=S.momentum; rb.wild=S.wild; }
+    else if(primary){ primary.bias=S.bias; primary.momentum=S.momentum; primary.wild=S.wild; }
+    layoutAll();
+  }
+
+  /* ---------------- math ---------------- */
+  function comb(n,k){ if(k<0||k>n) return 0; k=Math.min(k,n-k); let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return Math.round(r); }
+  function pmf(n,k){ return comb(n,k)/Math.pow(2,n); }
+
+  /* ---------------- colour ---------------- */
+  function hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+  const HONEY=hx('FFCB6B'), AMBER=hx('FF9A52'), AMBERD=hx('F2743C'), CYAN=hx('54ECDC'), CYANS=hx('9BF1E6');
+  function mix(a,b,t){ t=Math.max(0,Math.min(1,t)); return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)]; }
+  // Colour by rarity only (distance from the peg centre), so sprites are shared across boards.
+  // Slots beyond the peg spread can only be reached by a wild jump — they glow cyan, brighter the farther out.
+  function binInfo(slot){
+    const n=S.rows, c=n/2, md=n/2, d=Math.abs(slot-c);
+    if(slot<0||slot>n){ const over=Math.min(1,(d-md)/Math.max(1,md)); return {rgb:CYAN, glow:0.6+0.4*over}; }
+    if(slot===0||slot===n) return {rgb:CYAN, glow:1};
+    if(slot===1||slot===n-1) return {rgb:CYANS, glow:.4};
+    const t=Math.min(1,(d/md)/0.82);
+    return {rgb: t<0.5? mix(HONEY,AMBER,t*2) : mix(AMBER,AMBERD,(t-0.5)*2), glow:0};
+  }
+
+  /* ---------------- marble sprite (pre-rendered, blitted) ---------------- */
+  function makeMarble(rgb, glow){
+    const R0=32, pad=glow>0? Math.round(14+glow*30):12, size=2*(R0+pad);
+    const c=document.createElement('canvas'); c.width=size; c.height=size; const g=c.getContext('2d');
+    const cx=size/2, cy=size/2, p=rgb.split(',').map(Number);
+    if(glow>0){ const gr=g.createRadialGradient(cx,cy,R0*0.55,cx,cy,R0+pad);
+      gr.addColorStop(0,'rgba('+rgb+','+(0.45*glow)+')'); gr.addColorStop(0.5,'rgba('+rgb+','+(0.16*glow)+')'); gr.addColorStop(1,'rgba('+rgb+',0)');
+      g.fillStyle=gr; g.fillRect(0,0,size,size); }
+    g.save(); g.globalAlpha=.34; if('filter' in g) g.filter='blur(3px)'; g.fillStyle='#000';
+    g.beginPath(); g.ellipse(cx,cy+R0*0.9,R0*0.72,R0*0.26,0,0,6.2832); g.fill(); g.restore();
+    const bg=g.createRadialGradient(cx-R0*0.36,cy-R0*0.4,R0*0.08, cx,cy,R0*1.04);
+    const light='rgb('+Math.min(255,p[0]+80)+','+Math.min(255,p[1]+80)+','+Math.min(255,p[2]+80)+')';
+    const dark='rgb('+Math.round(p[0]*0.42)+','+Math.round(p[1]*0.42)+','+Math.round(p[2]*0.42)+')';
+    bg.addColorStop(0,'#ffffff'); bg.addColorStop(.14,light); bg.addColorStop(.56,'rgb('+rgb+')'); bg.addColorStop(1,dark);
+    g.fillStyle=bg; g.beginPath(); g.arc(cx,cy,R0,0,6.2832); g.fill();
+    g.save(); g.globalCompositeOperation='screen'; g.lineWidth=R0*0.15; g.lineCap='round';
+    g.strokeStyle='rgba('+light.slice(4,-1)+',0.5)'; g.beginPath(); g.arc(cx,cy,R0*0.9,0.05*Math.PI,0.7*Math.PI); g.stroke(); g.restore();
+    g.save(); g.globalCompositeOperation='screen';
+    g.fillStyle='rgba(255,255,255,0.95)'; g.beginPath(); g.ellipse(cx-R0*0.3,cy-R0*0.34,R0*0.19,R0*0.12,-0.5,0,6.2832); g.fill();
+    g.globalAlpha=.55; g.beginPath(); g.ellipse(cx-R0*0.12,cy-R0*0.5,R0*0.08,R0*0.055,0,0,6.2832); g.fill(); g.restore();
+    return {canvas:c,R0,size};
+  }
+  function sprite(slot){ if(!spriteCache[slot]){ const info=binInfo(slot); spriteCache[slot]=makeMarble(info.rgb.join(','), info.glow); } return spriteCache[slot]; }
+  function drawMarble(slot,x,y,r,sy){ const s=sprite(slot), sc=r/s.R0, w=s.size*sc, h=s.size*sc*(sy||1); ctx.drawImage(s.canvas, x-w/2, y-h/2, w, h); }
+
+  /* ---------------- geometry ---------------- */
+  // === BIN DOMAIN ===  bins are slots on the floor; slot n/2 sits under the peg apex.
+  // A fair board only fills 0..rows. Lever 3 lets a ball jump OUTSIDE that, so when Wild is
+  // live we pad the domain to a fixed range wider than the peg spread — outliers land in the
+  // open margins and overshoot the bell instead of clipping at the edge.
+  function anyWild(){ for(const b of boards) if(b.wild>0) return true; return false; }
+  function domainPad(){ return anyWild()? Math.max(3,Math.round(S.rows*0.5)) : 0; }
+  function domLo(){ return -domainPad(); }
+  function domHi(){ return S.rows+domainPad(); }
+  function clampSlot(s){ return Math.max(domLo(),Math.min(domHi(),s)); }
+
+  function measure(){
+    const rc=cvs.parentElement.getBoundingClientRect(); const w=Math.max(280,rc.width), h=Math.max(300,rc.height);
+    cvs.width=Math.round(w*DPR); cvs.height=Math.round(h*DPR); cvs.style.width=w+'px'; cvs.style.height=h+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0); geoRoot={w,h,gap:0};
+  }
+  // Shared x-scale (Lever 4): every board gets the SAME dx and domain, so a given slot sits at
+  // the same offset in each half and the tails line up.
+  function layoutAll(){
+    const {w,h}=geoRoot; if(!w||!boards.length) return;
+    const n=boards.length, gap = n>1? Math.max(10,w*0.02):0; geoRoot.gap=gap;
+    const regionW=(w-gap*(n-1))/n;
+    const half=(S.rows/2)+domainPad();
+    const side=Math.max(14, regionW*0.05);
+    const dx=Math.min((regionW/2 - side)/Math.max(0.5,half), 50);
+    for(let k=0;k<boards.length;k++) layoutBoard(boards[k], k*(regionW+gap), regionW, h, dx);
+  }
+  function layoutBoard(b,x0,w,h,dx){
+    const n=S.rows, cx=x0+w/2, labelH=boards.length>1?24:0;
+    const topMargin=Math.max(42,h*0.12)+labelH, binAreaH=Math.max(90,h*0.31), bottomMargin=Math.max(22,h*0.06);
+    const binBottom=h-bottomMargin, binTop=binBottom-binAreaH, pegBottom=binTop-Math.max(16,dx*0.55);
+    const dy=(pegBottom-topMargin)/Math.max(1,(n-1));
+    const ballR=Math.max(3,Math.min(dx*0.27,11)), pegR=Math.max(1.5,Math.min(dx*0.12,4));
+    b.geo={ x0,w,h,n,dx,cx,apexY:topMargin,labelH,binAreaH,binBottom,binTop,dy,ballR,pegR,
+            dropH:Math.max(26,dy*1.2), baseUnit:Math.max(4.5,ballR*1.9) };
+  }
+  function pegPos(b,r,i){ const g=b.geo; return { x:g.cx+(i-r/2)*g.dx, y:g.apexY+r*g.dy }; }
+  function binX(b,slot){ const g=b.geo; return g.cx+(slot-g.n/2)*g.dx; }
+
+  /* ---------------- lifecycle ---------------- */
+  function updateCount(){
+    document.getElementById('count').textContent=(primary? primary.total:0).toLocaleString();
+    document.getElementById('countlab').textContent=S.compare?'balls each':'balls dropped';
+    updateTailReadout(S.compare? boards[1] : primary);
+  }
+  // === TAIL METRIC (Task 4) ===  Old metric counted the four fixed edge bins, so pure bias piled
+  // the whole hill into an edge and faked a fat tail. Fix: measure mass that lands beyond 3 sigma
+  // of the NAIVE bell (mean=n*bias, sd=sqrt(n*bias(1-bias))). Because that reference recentres and
+  // rescales with the bias, a shifted-but-normal hill reads ~0.3% (the Gaussian value); only genuine
+  // spread — streaks or wild jumps — pushes it up.
+  function boardStats(b){
+    const n=S.rows, mu=n*b.bias, sd=Math.sqrt(Math.max(1e-6, n*b.bias*(1-b.bias)));
+    let beyond=0; b.bins.forEach((c,slot)=>{ if(Math.abs(slot-mu) > 3*sd) beyond+=c; });
+    return { mu, sd, share: b.total? beyond/b.total*100 : 0 };
+  }
+  function updateTailReadout(b){
+    if(!b) return; const st=boardStats(b);
+    const ts=document.getElementById('tailstat'), ss=document.getElementById('sigmastat');
+    if(ts){ ts.querySelector('b').textContent=st.share.toFixed(1)+'%'; ts.classList.toggle('hot', st.share>1.0); }
+    if(ss){ ss.querySelector('b').textContent=(b.total?b.farSigma.toFixed(1):'0.0')+'σ'; ss.classList.toggle('hot', b.farSigma>4); }
+  }
+  function makeDust(){ dust=[]; if(reduce) return; for(let i=0;i<26;i++) dust.push({ x:Math.random(), y:Math.random()*0.62, r:Math.random()*1.1+0.3, a:Math.random()*0.05+0.02 }); }
+
+  /* ---------------- balls ---------------- */
+  function segTarget(b){ const g=b.board.geo;
+    return b.r<S.rows? pegPos(b.board,b.r,b.i) : { x:binX(b.board,b.bin), y:g.binBottom-g.ballR }; }
+  function startSeg(b,first){ const t=segTarget(b); b.seg={ ax:b.x, ay:b.y, bx:t.x, by:t.y, t:0, dur:(first?0.34:0.30)*b.hop }; }
+  // A wild ball walks the pegs to bin, then LEAPS sideways to its true outlier slot — the visual
+  // of a broken step size.
+  function startLeap(b){ const g=b.board.geo; b.seg={ ax:b.x, ay:b.y, bx:binX(b.board,clampSlot(b.land)), by:g.binBottom-g.ballR, t:0, dur:0.26 }; b.leaping=true; }
+
+  // heavy-tailed signed jump, in slot units (Pareto tail, alpha≈1.3 => genuinely fat)
+  function levyJump(sd){ const sign=Math.random()<0.5?-1:1, u=Math.max(1e-3,Math.random());
+    return sign*Math.round(2.4*sd*Math.pow(u,-1/1.3)); }
+
+  function spawnBall(board,o){
+    o=o||{}; const n=S.rows, g=board.geo, seq=[]; let bin=0, prev=null;
+    // === BOUNCE RULE (the single source of truth for a ball's path) ===
+    //  Lever 1  Bias:     board.bias = P(bounce right).  0.5 = fair.
+    //  Lever 2  Momentum: board.momentum blends each bounce toward the PREVIOUS one (dependence).
+    for(let r=0;r<n;r++){
+      let p=board.bias;
+      if(prev!==null && board.momentum>0) p = p*(1-board.momentum) + prev*board.momentum;
+      const d = Math.random()<p ? 1:0; seq.push(d); bin+=d; prev=d;
+    }
+    //  Lever 3  Wild (Lévy): a rare step abandons the fixed ±1 and takes a big signed jump. The
+    //  slider is the per-BALL chance of going wild, spread across the rows so it stays a rare event
+    //  and the jumps themselves are heavy-tailed — so the sum stops being Gaussian and grows a fat tail.
+    let jump=0;
+    if(board.wild>0){
+      const pstep=1-Math.pow(1-board.wild, 1/n);
+      const sd=Math.sqrt(Math.max(1e-6, n*board.bias*(1-board.bias)));
+      for(let r=0;r<n;r++) if(Math.random()<pstep) jump+=levyJump(sd);
+    }
+    const land=bin+jump, info=binInfo(land);
+    const b={ id:++ballId, board, seq, bin, jump, land, r:0, i:0,
+      tracked:!!o.tracked, guessEval:!!o.guessEval, glow:info.glow>0, leapt:(jump===0),
+      x:g.cx+(Math.random()*2-1)*g.dx*0.3, y:g.apexY-g.dropH, squash:0, path:[], trail:[], hop:0.85+Math.random()*0.3 };
+    startSeg(b,true); board.balls.push(b);
+  }
+  function easeInOut(t){ return t<.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+  function updateBall(b,dt){
+    const sf=0.5+S.speed*0.5, s=b.seg; s.t+=dt/(s.dur/sf); const t=Math.min(1,s.t);
+    b.x=s.ax+(s.bx-s.ax)*easeInOut(t);
+    b.y=b.leaping? s.ay+(s.by-s.ay)*easeInOut(t) : s.ay+(s.by-s.ay)*(t*t);
+    if(b.leaping && !reduce){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>14) b.trail.shift(); }
+    b.squash=Math.max(0,b.squash-dt*6);
+    if(s.t>=1){ b.x=s.bx; b.y=s.by;
+      if(b.r<S.rows){ onPeg(b); b.path.push(b.seq[b.r]?'R':'L'); b.i+=b.seq[b.r]; b.r+=1; b.squash=1; startSeg(b,false); }
+      else if(!b.leapt){ b.leapt=true; startLeap(b); }
+      else { b.leaping=false; settle(b); } }
+  }
+  function settle(b){
+    const board=b.board, n=S.rows;
+    board.bins.set(b.land,(board.bins.get(b.land)||0)+1); board.total++;
+    const mu=n*board.bias, sd=Math.sqrt(Math.max(1e-6, n*board.bias*(1-board.bias)));
+    const dev=Math.abs(b.land-mu)/sd; if(dev>board.farSigma) board.farSigma=dev;
+    updateCount(); b.dead=true;
+    if(b.guessEval){ evalGuess(b.land); thud(b.land); return; }
+    if(b.tracked && !S.rainOn && !S.guessMode){ insightSingle(b); thud(b.land); return; }
+    if(!S.rainOn) thud(b.land);
+    if(board===primary && !S.compare && board.total>0 && board.total%60===0
+       && board.momentum<=0 && board.wild<=0 && Math.abs(board.bias-0.5)<0.001)
+      setInsight("See the hill? Tall in the middle, tiny at the edges &mdash; that shape is the bell curve.","");
+  }
+
+  /* ---------------- effects ---------------- */
+  function onPeg(b){ const board=b.board, g=board.geo;
+    board.flashes.push({ x:b.x, y:b.y, life:0.3, max:0.3, r:g.ballR*2 });
+    if(!reduce && board.balls.length<70 && board.parts.length<160 && Math.random()<0.7){ for(let k=0;k<2;k++){ const a=Math.random()*6.283; board.parts.push({ x:b.x,y:b.y,vx:Math.cos(a)*38,vy:Math.sin(a)*38-16,life:.28,max:.28,r:1.5,rgb:'255,220,150' }); } }
+    plink(b.r);
+  }
+  function celebrate(board,x,y){ if(reduce) return; for(let k=0;k<26;k++){ const a=Math.random()*6.283, sp=70+Math.random()*160; board.parts.push({ x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-50,life:.9+Math.random()*.5,max:1.4,r:2.2+Math.random()*1.7,rgb:Math.random()<.5?'84,236,220':'255,203,107' }); } }
+
+  /* ---------------- insight ---------------- */
+  function setInsight(t,tone){ document.getElementById('insight').className='insight'+(tone?(' '+tone):''); document.getElementById('insight-text').innerHTML=t; }
+  function insightSingle(b){
+    const path='<code>'+b.path.join(' ')+'</code>';
+    if(b.jump!==0){ const mu=S.rows*b.board.bias, sd=Math.sqrt(Math.max(1e-6,S.rows*b.board.bias*(1-b.board.bias))), sig=Math.abs(b.land-mu)/sd;
+      setInsight('Whoa &mdash; that ball skipped the pegs and <b>jumped</b> to slot <code>'+b.land+'</code>, about <b>'+sig.toFixed(1)+'&sigma;</b> out. A fixed-step machine could never reach there. <b>That</b> is a wild tail.','win');
+      celebrate(b.board, binX(b.board,clampSlot(b.land)), b.board.geo.binBottom-24); chord(); return; }
+    if(b.land===0||b.land===S.rows){ setInsight('This ball went '+path+' to bin <code>'+b.land+'</code>. &#127775; A perfect '+(b.land===0?'left':'right')+' streak &mdash; about <b>1 in '+Math.pow(2,S.rows).toLocaleString()+'</b>. The edge means winning <b>every</b> bounce.','win'); celebrate(b.board,binX(b.board,b.land),b.board.geo.binBottom-24); chord(); }
+    else setInsight('This ball flipped '+path+' &rarr; bin <code>'+b.land+'</code>. One ball is pure chaos. Now pour a hundred and watch a hill appear.','');
+  }
+  function evalGuess(landing){
+    awaitingGuess=false;
+    if(landing===guessBin){ setInsight('&#127881; You nailed it &mdash; bin <code>'+guessBin+'</code>! That bin had only about a <b>'+(pmf(S.rows,guessBin)*100).toFixed(1)+'%</b> chance. Tap again.','win'); celebrate(primary,binX(primary,clampSlot(guessBin)),primary.geo.binBottom-24); chord(); }
+    else setInsight('It landed in slot <code>'+landing+'</code>, not <code>'+guessBin+'</code>. A single ball is impossible to call &mdash; that’s the whole idea. Try again.','miss');
+  }
+  function biasMsg(){ if(Math.abs(S.bias-0.5)<0.001){ setInsight('Pegs fair again &mdash; a balanced coin.',''); return; }
+    setInsight('The hill now leans '+(S.bias>0.5?'right':'left')+' &mdash; but it’s still a <b>bell</b>. A biased coin <b>shifts</b> the peak; it doesn’t fatten the tails. Watch the &ldquo;beyond 3&sigma;&rdquo; readout stay put.',''); }
+  function momMsg(){ if(S.momentum<=0){ setInsight('Streaks off &mdash; every bounce forgets the last. Fair again.',''); return; }
+    setInsight('Streaks now <b>stick</b>: each bounce leans the way the last one went. Watch marbles spill <b>past</b> the predicted curve into the edges &mdash; that overspill <b>is</b> the fat tail. Fair coins have stopped making a bell.','win'); }
+  function wildMsg(){ if(S.wild<=0){ setInsight('Wild jumps off &mdash; every step is a tidy &plusmn;1 again.',''); return; }
+    setInsight('Now a rare bounce can <b>leap</b> instead of nudge &mdash; the fixed step size is broken. A few marbles rocket past the bell into the far margins, and the average becomes hostage to the <b>one</b> giant jump. Welcome to <b>Extremistan</b>.','win'); }
+  function logMsg(){ setInsight(S.logScale? 'Log height: the bell <b>nose-dives</b> at the edges (a parabola falling off a cliff). Fat tails refuse to &mdash; their bars stay stubbornly tall far out. That gap is the whole story.' : 'Back to linear height.',''); }
+  function compareMsg(){ setInsight(S.compare? 'Two machines, one x-scale. <b>Left is fair</b>; <b>right is rigged</b> by your levers. Pour into both &mdash; the middles match, the tails don’t.' : 'Back to one machine.',''); }
+
+  /* ---------------- audio ---------------- */
+  let AC=null, master=null, plinkWin=[];
+  function ensureAudio(){ if(!S.sound) return; if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.9; master.connect(AC.destination); }catch(e){ AC=null; } } if(AC&&AC.state==='suspended') AC.resume(); }
+  function plink(row){ if(!S.sound||!AC) return; const now=AC.currentTime; plinkWin=plinkWin.filter(t=>now-t<0.1); if(plinkWin.length>7) return; plinkWin.push(now);
+    const o=AC.createOscillator(), g=AC.createGain(); o.type='triangle'; o.frequency.value=540+row*26+(Math.random()*18-9);
+    const v=S.rainOn?.026:.055; g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(v,now+.004); g.gain.exponentialRampToValueAtTime(.0001,now+.13); o.connect(g); g.connect(master); o.start(now); o.stop(now+.15); }
+  function thud(slot){ if(!S.sound||!AC||S.rainOn) return; const now=AC.currentTime; const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=150+Math.max(0,Math.min(S.rows,slot))*4;
+    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.05,now+.01); g.gain.exponentialRampToValueAtTime(.0001,now+.2); o.connect(g); g.connect(master); o.start(now); o.stop(now+.22); }
+  function chord(){ if(!S.sound||!AC) return; const now=AC.currentTime; [0,4,7,12].forEach((st,i)=>{ const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=440*Math.pow(2,st/12); const t=now+i*.06;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.085,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+.55); }); }
+
+  /* ---------------- spawn pump ---------------- */
+  function pump(board,dt){
+    const cap = boards.length>1? 200:280;
+    if(S.rainOn && board.balls.length<cap-20){ board.rainAcc+=dt; const rate=5+S.speed*5; while(board.rainAcc>1/rate){ board.pending++; board.rainAcc-=1/rate; } }
+    let budget=1+S.speed; while(board.pending>0 && budget>0 && board.balls.length<cap){ spawnBall(board); board.pending--; budget--; }
+  }
+  function dropOne(){ for(const b of boards){ if(S.rainOn) b.pending++; else spawnBall(b,{tracked:(!S.compare && b===primary)}); } }
+  function dropMany(k){ for(const b of boards) b.pending+=k; }
+
+  /* ---------------- draw ---------------- */
+  function rr(x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+  // Fold true slots into the visible domain for drawing: outliers beyond the margins pile on the
+  // edge column (with a chevron) but their true value still drives stats + the sigma readout.
+  function displayCounts(board){ const lo=domLo(), hi=domHi(); const dc=new Map(); let loP=0, hiP=0, mx=1;
+    board.bins.forEach((c,slot)=>{ if(slot<lo) loP+=c; else if(slot>hi) hiP+=c; else dc.set(slot,(dc.get(slot)||0)+c); });
+    if(loP) dc.set(lo,(dc.get(lo)||0)+loP); if(hiP) dc.set(hi,(dc.get(hi)||0)+hiP);
+    dc.forEach(c=>{ if(c>mx) mx=c; });
+    return { dc, loP, hiP, mx };
+  }
+  function draw(){
+    const {w,h}=geoRoot; ctx.clearRect(0,0,w,h);
+    for(const d of dust){ ctx.fillStyle='rgba(200,230,240,'+d.a+')'; ctx.beginPath(); ctx.arc(d.x*w,d.y*h,d.r,0,6.2832); ctx.fill(); }
+    for(const b of boards) drawBoard(b);
+    if(boards.length>1){ const x=boards[1].geo.x0-geoRoot.gap/2; ctx.strokeStyle='rgba(245,238,224,0.10)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,10); ctx.lineTo(x,h-10); ctx.stroke(); }
+    const vg=ctx.createRadialGradient(w/2,h*0.42,h*0.3,w/2,h*0.5,h*0.85); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
+  }
+  function drawBoard(board){
+    const g=board.geo, n=S.rows; if(!g.w) return;
+    const lo=domLo(), hi=domHi(), single=(board===primary);
+    const {dc,loP,hiP,mx}=displayCounts(board);
+    // vertical unit — linear packs marbles; log flattens both bars and bell so shapes read straight.
+    const plotH=g.binAreaH-g.ballR*1.4;
+    const logDen=Math.log1p(mx);
+    const hOf = S.logScale ? (v)=> (logDen>0? plotH*Math.log1p(v)/logDen : 0)
+                           : (v)=> v*Math.min(g.baseUnit, plotH/Math.max(1,mx));
+
+    // guess overlay (single board only)
+    if(S.guessMode && single){ for(let slot=lo;slot<=hi;slot++){ const x=binX(board,slot); ctx.strokeStyle='rgba(84,236,220,0.14)'; ctx.lineWidth=1; rr(x-g.dx*0.44,g.binTop,g.dx*0.88,g.binAreaH,7); ctx.stroke(); } }
+
+    // faint bin gridlines
+    ctx.strokeStyle='rgba(245,238,224,0.05)'; ctx.lineWidth=1;
+    for(let slot=lo;slot<=hi+1;slot++){ const x=binX(board,slot)-g.dx/2; ctx.beginPath(); ctx.moveTo(x,g.binTop+4); ctx.lineTo(x,g.binBottom); ctx.stroke(); }
+
+    // bell curve — the shape a NAIVE analyst predicts (binomial mean/sd for THIS board's bias).
+    // Under momentum or wild it stops matching: marbles spill past it, and that gap IS the fat tail.
+    if(S.showBell && board.total>0){
+      const mean=n*board.bias, sd=Math.sqrt(Math.max(1e-6, n*board.bias*(1-board.bias))), norm=1/(sd*Math.sqrt(2*Math.PI));
+      const pts=[]; for(let bx=lo-0.5; bx<=hi+0.5; bx+=0.12){ const val=board.total*norm*Math.exp(-0.5*((bx-mean)/sd)*((bx-mean)/sd)); let y=g.binBottom-hOf(val); if(y<g.binTop-4) y=g.binTop-4; pts.push([binX(board,bx),y]); }
+      ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0][0],g.binBottom); for(const p of pts) ctx.lineTo(p[0],p[1]); ctx.lineTo(pts[pts.length-1][0],g.binBottom); ctx.closePath();
+      const fg=ctx.createLinearGradient(0,g.binTop,0,g.binBottom); fg.addColorStop(0,'rgba(255,235,205,0.12)'); fg.addColorStop(1,'rgba(255,235,205,0)'); ctx.fillStyle=fg; ctx.fill(); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(const p of pts) ctx.lineTo(p[0],p[1]);
+      ctx.strokeStyle='rgba(255,238,210,0.7)'; ctx.lineWidth=2; ctx.shadowColor='rgba(255,238,210,0.45)'; ctx.shadowBlur=7; ctx.stroke(); ctx.restore();
+    }
+
+    // histogram — marble stacks (linear) or clean bars (log)
+    if(S.logScale){
+      dc.forEach((c,slot)=>{ if(c<=0) return; const x=binX(board,slot), bw=Math.max(2,g.dx*0.72), top=g.binBottom-hOf(c), info=binInfo(slot);
+        ctx.fillStyle='rgba('+info.rgb.join(',')+',0.85)'; rr(x-bw/2, top, bw, g.binBottom-top, Math.min(4,bw/2)); ctx.fill(); });
+    } else {
+      const cap=90;
+      dc.forEach((c,slot)=>{ if(c<=0) return; const cxb=binX(board,slot), colH=hOf(c), K=Math.min(c,cap), step=colH/K, mr=Math.max(2,Math.min(step*0.62,g.dx*0.42));
+        for(let j=0;j<K;j++) drawMarble(slot, cxb, g.binBottom-(j+0.5)*step, mr); });
+    }
+    // off-chart chevrons — outliers pinned at the wall
+    if(loP){ ctx.fillStyle='rgba(84,236,220,0.9)'; ctx.font=UIFONT; ctx.textAlign='left'; ctx.fillText('‹ '+loP, binX(board,lo)-g.dx*0.4, g.binTop-6); }
+    if(hiP){ ctx.fillStyle='rgba(84,236,220,0.9)'; ctx.font=UIFONT; ctx.textAlign='right'; ctx.fillText(hiP+' ›', binX(board,hi)+g.dx*0.4, g.binTop-6); }
+
+    // floor
+    const fs=ctx.createLinearGradient(0,g.binBottom,0,g.binBottom+22); fs.addColorStop(0,'rgba(255,255,255,0.09)'); fs.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=fs; ctx.fillRect(g.x0,g.binBottom,g.w,22);
+    ctx.strokeStyle='rgba(245,238,224,0.18)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(binX(board,lo)-g.dx*0.6,g.binBottom+0.5); ctx.lineTo(binX(board,hi)+g.dx*0.6,g.binBottom+0.5); ctx.stroke();
+
+    // path counts (only meaningful inside the peg spread)
+    if(S.showPaths){ ctx.save(); ctx.textAlign='center'; ctx.font='700 '+Math.max(9,Math.min(g.dx*0.32,13))+'px ui-monospace, monospace';
+      for(let b=0;b<=n;b++){ const e=(b===0||b===n); ctx.fillStyle=e?'rgba(84,236,220,0.95)':'rgba(245,238,224,0.4)'; ctx.fillText(comb(n,b).toLocaleString(), binX(board,b), g.binTop-7); } ctx.restore(); }
+
+    // pegs
+    for(let r=0;r<n;r++) for(let i=0;i<=r;i++){ const p=pegPos(board,r,i);
+      ctx.fillStyle='rgba(150,175,190,0.42)'; ctx.beginPath(); ctx.arc(p.x,p.y,g.pegR,0,6.2832); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(p.x-g.pegR*0.3,p.y-g.pegR*0.3,g.pegR*0.4,0,6.2832); ctx.fill(); }
+
+    // effects + balls
+    for(const f of board.flashes){ const k=f.life/f.max; ctx.strokeStyle='rgba(255,240,215,'+(0.5*k)+')'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(f.x,f.y,(1-k)*f.r+g.pegR,0,6.2832); ctx.stroke(); }
+    for(const p of board.parts){ const k=Math.max(0,p.life/p.max); ctx.fillStyle='rgba('+p.rgb+','+k+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r*k+0.3,0,6.2832); ctx.fill(); }
+    for(const b of board.balls){
+      if(b.trail.length){ for(let i=0;i<b.trail.length;i++){ const tp=b.trail[i], a=(i/b.trail.length)*0.5; ctx.fillStyle='rgba(84,236,220,'+a+')'; ctx.beginPath(); ctx.arc(tp.x,tp.y,g.ballR*0.55*(i/b.trail.length+0.35),0,6.2832); ctx.fill(); } }
+      const sx=1+0.28*b.squash; drawMarble(b.leapt?b.land:b.bin, b.x, b.y, g.ballR*sx, (1-0.28*b.squash));
+    }
+
+    // hopper
+    const hy=g.apexY-g.dropH, hw=g.dx*1.5, hh=g.dropH*0.8;
+    ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(245,238,224,0.26)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(g.cx-hw,hy-hh); ctx.lineTo(g.cx+hw,hy-hh); ctx.lineTo(g.cx+g.ballR*1.5,hy); ctx.lineTo(g.cx-g.ballR*1.5,hy); ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // guess marker
+    if(S.guessMode && single && guessBin!=null){ const gx=binX(board,guessBin), y=g.binTop-19; ctx.fillStyle='rgba(84,236,220,0.95)'; ctx.beginPath(); ctx.moveTo(gx-7,y-8); ctx.lineTo(gx+7,y-8); ctx.lineTo(gx,y+2); ctx.closePath(); ctx.fill(); }
+
+    // board label (side-by-side)
+    if(g.labelH){ ctx.save(); ctx.textAlign='center'; ctx.font=UIFONT; ctx.fillStyle=board.rigged?'rgba(255,178,76,0.95)':'rgba(84,236,220,0.95)';
+      ctx.fillText(board.label.toUpperCase(), g.cx, 18); ctx.restore(); }
+  }
+
+  /* ---------------- loop ---------------- */
+  let lastT=performance.now();
+  function frame(now){ let dt=(now-lastT)/1000; lastT=now; if(dt>0.05) dt=0.05;
+    for(const board of boards){
+      pump(board,dt);
+      for(const b of board.balls) if(!b.dead) updateBall(b,dt);
+      if(board.balls.some(b=>b.dead)) board.balls=board.balls.filter(b=>!b.dead);
+      for(const f of board.flashes) f.life-=dt; if(board.flashes.length) board.flashes=board.flashes.filter(f=>f.life>0);
+      for(const p of board.parts){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=360*dt; } if(board.parts.length) board.parts=board.parts.filter(p=>p.life>0);
+    }
+    draw(); requestAnimationFrame(frame);
+  }
+
+  /* ---------------- controls ---------------- */
+  function firstTouch(){ if(interacted) return; interacted=true; document.getElementById('drop1').classList.remove('pulse'); document.getElementById('hint').style.opacity='0'; }
+  function toggleBtn(id,key,after){ const el=document.getElementById(id); el.addEventListener('click',()=>{ S[key]=!S[key]; el.setAttribute('aria-pressed',S[key]?'true':'false'); if(after) after(); }); }
+
+  document.getElementById('drop1').addEventListener('click',()=>{ firstTouch(); ensureAudio(); dropOne(); });
+  document.getElementById('drop100').addEventListener('click',()=>{ firstTouch(); ensureAudio(); dropMany(100); });
+  const rainBtn=document.getElementById('rain'), rainFace=document.getElementById('rainface');
+  rainBtn.addEventListener('click',()=>{ firstTouch(); ensureAudio(); S.rainOn=!S.rainOn; if(S.rainOn){ S.guessMode=false; syncGuess(); } rainBtn.setAttribute('aria-pressed',S.rainOn?'true':'false'); rainFace.innerHTML=S.rainOn?'<span class="live"></span>Raining':'Rain'; });
+  const guessBtn=document.getElementById('guess');
+  function syncGuess(){ guessBtn.setAttribute('aria-pressed',S.guessMode?'true':'false'); }
+  guessBtn.addEventListener('click',()=>{ if(S.compare) return; firstTouch(); S.guessMode=!S.guessMode; if(S.guessMode){ S.rainOn=false; rainBtn.setAttribute('aria-pressed','false'); rainFace.textContent='Rain'; guessBin=null; awaitingGuess=false; setInsight('Tap the bin where you think the next ball will land.',''); } else setInsight('Drop a ball. You can’t guess where one lands &mdash; but a thousand always make the same hill.',''); syncGuess(); });
+  document.getElementById('reset').addEventListener('click',()=>{ buildBoards(); setInsight('Cleared. Drop a ball &mdash; one is a mystery, a thousand are a hill.',''); });
+
+  toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers are how many <b>paths</b> reach each bin. Loads of ways to the middle; only <b>one</b> way to each edge.',''); });
+  document.getElementById('sound').addEventListener('click',function(){ S.sound=!S.sound; this.setAttribute('aria-pressed',S.sound?'true':'false'); if(S.sound) ensureAudio(); });
+
+  // Lab (depth) toggle — reveals the fat-tails levers.
+  document.getElementById('lab').addEventListener('click',function(){ S.depth = S.depth==='lab'?'explore':'lab'; const on=S.depth==='lab';
+    this.setAttribute('aria-pressed',on?'true':'false'); document.getElementById('labrow').classList.toggle('on',on);
+    if(on) setInsight('Lab mode: now you can <b>rig</b> the machine. Lean the pegs, make streaks stick, or add <b>wild</b> jumps &mdash; and watch the tidy hill break.',''); });
+
+  const rowsI=document.getElementById('rows'), rowsO=document.getElementById('rowsOut');
+  rowsI.addEventListener('input',()=>{ S.rows=+rowsI.value; rowsO.textContent=rowsI.value; spriteCache={}; buildBoards(); });
+  const speedI=document.getElementById('speed'), speedO=document.getElementById('speedOut');
+  speedI.addEventListener('input',()=>{ S.speed=+speedI.value; speedO.textContent=speedI.value; });
+
+  // Lever 1 — Bias
+  const biasI=document.getElementById('bias'), biasO=document.getElementById('biasOut');
+  biasI.addEventListener('input',()=>{ S.bias=+biasI.value/100; biasO.textContent=biasI.value+'%'; applyRig(); biasMsg(); });
+  // Lever 2 — Momentum (streaks stick)
+  const momI=document.getElementById('mom'), momO=document.getElementById('momOut');
+  momI.addEventListener('input',()=>{ S.momentum=+momI.value/100; momO.textContent=momI.value+'%'; applyRig(); momMsg(); });
+  // Lever 3 — Wild (Lévy jumps)
+  const wildI=document.getElementById('wild'), wildO=document.getElementById('wildOut');
+  wildI.addEventListener('input',()=>{ S.wild=+wildI.value/100; wildO.textContent=wildI.value+'%'; applyRig(); updateCount(); wildMsg(); });
+
+  // adult analytics
+  document.getElementById('logscale').addEventListener('click',function(){ S.logScale=!S.logScale; this.setAttribute('aria-pressed',S.logScale?'true':'false'); logMsg(); });
+  // Lever 4 — Side-by-side
+  document.getElementById('compare').addEventListener('click',function(){ S.compare=!S.compare; this.setAttribute('aria-pressed',S.compare?'true':'false');
+    if(S.compare){ S.guessMode=false; syncGuess(); } guessBtn.disabled=S.compare; buildBoards(); compareMsg(); });
+
+  document.getElementById('resetrules').addEventListener('click',()=>{ S.bias=0.5; S.momentum=0; S.wild=0;
+    biasI.value=50; biasO.textContent='50%'; momI.value=0; momO.textContent='0%'; wildI.value=0; wildO.textContent='0%';
+    applyRig(); updateCount(); setInsight('Rules reset &mdash; fair machine again.',''); });
+
+  cvs.addEventListener('pointerdown',e=>{ if(!S.guessMode||awaitingGuess||S.compare) return; firstTouch(); ensureAudio();
+    const rc=cvs.getBoundingClientRect(), x=e.clientX-rc.left, g=primary.geo; let b=Math.round((x-g.cx)/g.dx+g.n/2); b=Math.max(0,Math.min(S.rows,b));
+    guessBin=b; awaitingGuess=true; setInsight('You picked bin <code>'+b+'</code>. Dropping one ball&hellip;',''); spawnBall(primary,{guessEval:true}); });
+
+  window.addEventListener('resize',()=>{ measure(); layoutAll(); });
+  measure(); buildBoards(); requestAnimationFrame(frame);
+
+  // === ARCHITECTURE (Lever 4, side-by-side) ===
+  // State + geometry + effects now live on a Board object (makeBoard). `boards` holds one machine
+  // normally, two in compare mode (a locked Fair board + a Rigged one that mirrors the levers).
+  // layoutAll() hands every board the SAME dx and domain so their x-scales match and the tails line up.
+})();
+</script>
+</body>
+</html>
