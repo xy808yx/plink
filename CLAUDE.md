@@ -23,7 +23,9 @@ Mediocristan/Extremistan), **Taleb** (fat tails as a worldview). See README, whi
   `qlmanage -t -s 1024 -o <dir> icon.svg` then `sips -z <n> <n>`. Head wires favicon (SVG + PNG
   fallback), apple-touch-icon, manifest, and `theme-color`. App CODE stays single-file.
 - **Preserve the glass-marble sprite renderer** (`makeMarble` / `sprite` / `drawMarble`,
-  pre-rendered and blitted).
+  pre-rendered and blitted). Same pattern now also covers the aurora background (`makeAuroraBlobs`
+  / `drawAurora`) and the peg glow (`pegSpriteFor`): pre-render once, blit every frame, never
+  build gradients per frame in the hot loop.
 - **Preserve the layered-depth UX**: kids get the simple toy; the Lab row (`#labrow`) is hidden
   until Lab mode reveals the levers.
 - **Preserve the "one teaching line in the insight strip" pattern** (`setInsight`, the `#insight`
@@ -57,8 +59,13 @@ The whole app is one IIFE in `index.html`. Grep for these markers:
 4. **Side by side** (`S.compare`): two boards, a locked Fair one and a Rigged one that mirrors the
    levers, laid out with the SAME dx and domain (`layoutAll`) so the tails line up.
 
-Adult readouts: **beyond 3σ** (tail share), **farthest Nσ** (`board.farSigma`), and a **Log Y**
-toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straight).
+Adult readouts: **far-out balls** (tail share beyond 3σ, `#tailstat`), **farthest Nσ**
+(`board.farSigma`), and a **Log Y** toggle (`S.logScale`; linear packs marbles, log draws bars so
+shapes read straight).
+
+Kid-facing labels (IDs and math unchanged): Bias is **Lean** (`#bias`), Momentum is **Streaks**
+(`#mom`), Wild is **Wild jumps** (`#wild`), Side-by-side is **Compare** (`#compare`), and the rules
+reset is **Make it fair** (`#resetrules`). Do not rename the IDs.
 
 ## Gotchas
 
@@ -76,6 +83,21 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
   start height and per-BALL hop speed, and every segment's duration is jittered in `startSeg`, so a
   poured crowd desyncs into a curtain instead of a single-file thread. `segTarget` adds a small
   lateral wobble to peg glances; the final drop into the bin stays exact so landings are honest.
+- Motion juice (aurora pass): the final drop eases with `pow(t,2.2)` (heavier fall); a lone ball
+  gets ONE bounce-settle micro-state (`b.bouncing`, gated to crowds < 60 and `!reduce && !S.lite`)
+  before `settle()` runs, so counts land a beat later but are never changed. Every falling ball
+  carries a short light trail (`b.trail`, 8 points; a wild leap gets 14) drawn as one additive
+  two-stroke polyline coloured by `ballColorSlot`, gated to crowds < 150; when gated, tails burn
+  off point by point. Landings push a `ground` ripple flash coloured by `binInfo(b.land).rgb`.
+- Aurora + pegs: `drawAurora` blits 3-4 pre-rendered blobs (palette colours only) with `lighter`
+  compositing, drifting on slow sines, concentrated in the upper board; reduce-motion freezes the
+  drift. Pegs are one cached sprite per radius (`pegSpriteFor`), alpha-boosted per peg by
+  `board.pegGlow` (Float32Array indexed `r*(r+1)/2+i`, set in `onPeg`, decayed in `tick`). A faint
+  cyan sea-horizon line sits at `g.binTop` (the Push 2 seaside-story seed).
+- Adaptive quality: `frame()` keeps a rolling frame-time average and flips `S.lite` on above ~22ms
+  (off below 17ms); `S.lite` sheds trails and bounce-settle first. The per-frame body lives in
+  `tick(dt)`, separate from the rAF plumbing, so verification (and future Learn scripting) can
+  step the sim manually while the tab is hidden.
 - Collision (`=== COLLISION ===`, `separate()` called in the frame loop): marbles are solid. A
   spatial-hash separation pass pushes overlapping in-flight balls apart via a decaying RENDER offset
   (`b.ox/b.oy`, sprung back each frame in `updateBall`), so a pour jostles like real marbles instead
@@ -95,9 +117,22 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
   CSS grids — portrait `repeat(3,1fr)`, landscape a 2-col rail — with `.group{display:contents}`
   flattening buttons into them; Drop 1 is a full-width hero, Options|Lab a `.seg` segmented pair,
   sliders are meter rows (`grid` label / track / value), `.stat`s are readout rows, and `.railfoot`
-  pins an editorial plaque to the bottom of the landscape rail. `#dockcount` mirrors the counter into
+  pins a quiet plaque to the bottom of the landscape rail. `#dockcount` mirrors the counter into
   the rail header. All controls keep >=44px targets + focus-visible outlines. Do NOT revert to
   flex-wrap: it went ragged in portrait and full-width lonely-word pills in landscape.
+- Options / Lab are ONE accordion (`setPanel`): opening a panel closes its sibling, tapping the
+  open one closes it, `aria-pressed` stays in sync. Do not revert to independent toggles (both
+  panels used to stack open at once).
+- Slider meters: the label column is FIXED (5.2em portrait, 4.5em in the landscape rail), never
+  `auto`, so every track starts at the same x. The filled track is a CSS gradient driven by
+  `--fill`, painted by `paintFill(el)` on init and input; call `paintFill` after any programmatic
+  `.value` change (Make it fair does).
+- Type: one legible system sans (`--font`) + tabular mono numbers (`--mono`). The serif face was
+  removed; do not reintroduce it.
+- Audio: all synthesized, off by default, context created only inside a user gesture. `plink`
+  (peg tick) and `thud` (water-drop landing) pitch along a pentatonic map (`pent`); `chord()` is
+  the rare-event chime with a sparkle partial; `startAmbient`/`stopAmbient` run the sea pad
+  (detuned sines through a breathing lowpass + bandpassed surf noise) tied to the Sound toggle.
 - `preview_screenshot` caches an early pegs-only frame for this rAF canvas after a relayout. Verify
   rendering with `getImageData` pixel probes, not screenshots. NOTE: the preview tab is usually
   `document.hidden`, so rAF is throttled to zero and the canvas never animates on its own — to
@@ -116,6 +151,7 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
 
 - Commits use the anonymous identity `xy808yx <9j48dnjksk@privaterelay.appleid.com>`. Never leak a
   real name or email.
-- No em dashes in prose deliverables (README, this file, chat). NOTE: the in-app copy (insight
-  strings) already uses `&mdash;` as its established typographic voice; match the surrounding code
-  when editing app copy, but keep docs and chat em-dash-free.
+- No em dashes ANYWHERE: docs, chat, and (since the aurora pass) the in-app copy too. The old
+  `&mdash;` voice was retired when the copy went kid-plain (short warm sentences a 7 to 10 year
+  old can read on their own). Keep new insight strings in that voice: short sentences, plain
+  words, bold only the one idea that matters.

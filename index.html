@@ -23,8 +23,7 @@
     --line:rgba(255,255,255,.14);
     --amber:#FF7A1A; --amber-deep:#E85D00; --honey:#FFB166;
     --cyan:#3DF0DE; --cyan-deep:#12B9AC;
-    --font: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Nunito", "Quicksand", system-ui, -apple-system, sans-serif;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
     /* one spacing/shape/motion vocabulary for the whole control chrome (Astra "instrument" restraint) */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
@@ -65,7 +64,9 @@
      so revealing Lab/Colors scrolls the dock instead of stealing height from the board. */
   .dock{ grid-area:dock; display:flex; flex-direction:column; gap:var(--sp-3); min-height:0; min-width:0;
     max-height:250px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
-    padding:var(--sp-3); background:var(--surface); border:1px solid var(--line);
+    padding:var(--sp-3);
+    background:linear-gradient(180deg, color-mix(in srgb, var(--cyan) 5%, transparent), transparent 34%), var(--surface);
+    border:1px solid var(--line);
     border-radius:var(--r-card); box-shadow:var(--shadow-card); }
   #dockcount{ display:none; text-align:left; }   /* mirrored counter, shown only in the landscape rail */
   .railhead{ display:none; }                     /* brand block (cyan eyebrow + Plink title + count), landscape rail only */
@@ -77,7 +78,7 @@
   .title-wrap{ min-width:0; }
   .eyebrow{ font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--cyan); font-weight:700; margin:0 0 4px; }
   h1{ font-size:clamp(23px,4.6vw,42px); line-height:.96; margin:0; font-weight:800; letter-spacing:-.022em; }
-  .plaque{ font-family:var(--serif); font-style:italic; font-size:13px; letter-spacing:.02em; color:var(--ink-faint); margin:5px 0 0; }
+  .plaque{ font-size:12px; letter-spacing:.06em; font-weight:600; color:var(--ink-faint); margin:5px 0 0; }
   .railfoot{ display:none; margin:0; }            /* quiet editorial footer, revealed only in the landscape rail */
   .legend{ margin:8px 0 0; font-size:12.5px; color:var(--ink-dim); font-weight:600; }
   .legend b{ font-weight:800; } .legend .w{ color:var(--honey); } .legend .a{ color:var(--cyan); }
@@ -129,15 +130,20 @@
   .seg button:last-child{ border-radius:0 var(--r-ctl) var(--r-ctl) 0; }
 
   /* sliders are "meter rows": label / filled track / value — Astra's milled instrument read */
-  .slider{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:var(--sp-2); padding:7px 13px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-ctl); min-height:44px; min-width:0; }
-  .slider label{ font-size:12px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
+  /* fixed label column (not auto) so every track starts at the same x and the meters line up */
+  .slider{ display:grid; grid-template-columns:5.2em 1fr auto; align-items:center; gap:var(--sp-2); padding:7px 13px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-ctl); min-height:44px; min-width:0; }
+  .slider label{ font-size:12px; font-weight:700; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .slider output{ font-family:var(--mono); font-size:13px; font-weight:600; min-width:2.6em; text-align:right; font-variant-numeric:tabular-nums; }
-  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; min-width:0; height:5px; border-radius:99px; background:rgba(245,238,224,.20); box-shadow:inset 0 1px 2px rgba(0,0,0,.5); outline:none; touch-action:none; }
+  /* the track is a filled luminous meter: --fill is set from JS on input */
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; min-width:0; height:5px; border-radius:99px;
+    background:linear-gradient(90deg, color-mix(in srgb, var(--honey) 55%, transparent) var(--fill,0%), rgba(245,238,224,.16) var(--fill,0%));
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.5); outline:none; touch-action:none; }
   input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; box-shadow:0 2px 6px rgba(0,0,0,.45); }
   input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; }
   input[type=range]:focus-visible{ outline:2px solid var(--cyan); outline-offset:4px; }
   input[type=range].wild::-webkit-slider-thumb{ background:var(--cyan); }
   input[type=range].wild::-moz-range-thumb{ background:var(--cyan); }
+  input[type=range].wild{ background:linear-gradient(90deg, color-mix(in srgb, var(--cyan) 55%, transparent) var(--fill,0%), rgba(245,238,224,.16) var(--fill,0%)); }
 
   /* collapsible panels — hidden until their toggle adds .on (keeps the default bottom bar lean) */
   .dock .optsrow:not(.on){ display:none; }        /* .dock-scoped so it out-specifies the grid rule when collapsed */
@@ -146,7 +152,7 @@
     border-radius:var(--r-ctl); min-height:44px; min-width:0; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
   .stat b{ font-family:var(--mono); font-weight:600; color:var(--honey); font-variant-numeric:tabular-nums; }
   .stat.hot{ border-color:color-mix(in srgb, var(--cyan) 50%, transparent); } .stat.hot b{ color:var(--cyan); }
-  .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; font-style:italic; font-family:var(--serif); }
+  .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; }
 
   /* PHONE cosmetics only — the symmetric portrait GRID lives in @media(orientation:portrait) below. */
   @media (max-width:560px){
@@ -191,7 +197,7 @@
     .dock .spacer{ display:none; }
     .dock #drop1{ grid-column:1 / -1; min-height:52px; }
     .dock .seg{ grid-column:1 / -1; }
-    .dock .slider{ grid-column:1 / -1; }
+    .dock .slider{ grid-column:1 / -1; grid-template-columns:4.5em 1fr auto; }  /* narrower label col: the rail is tight */
     .dock .stat{ grid-column:1 / -1; }
     .dock #sound, .dock #resetrules{ grid-column:1 / -1; }   /* keep the odd trailing toggle from orphaning */
     .railhead{ display:block; padding:0 2px var(--sp-3); margin-bottom:var(--sp-1); border-bottom:1px solid var(--line); }
@@ -199,7 +205,7 @@
     .railtitle{ font-size:28px; }
     #dockcount{ display:block; text-align:right; min-width:0; }
     .railfoot{ display:block; margin-top:auto; padding-top:var(--sp-3); border-top:1px solid var(--line);
-      font-family:var(--serif); font-style:italic; font-size:12px; color:var(--ink-faint); text-align:center; }
+      font-size:11.5px; letter-spacing:.05em; font-weight:600; color:var(--ink-faint); text-align:center; }
   }
   @media (prefers-reduced-motion: reduce){
     .cabinet{ animation:none; opacity:1; transform:none; }
@@ -215,19 +221,19 @@
       <p class="eyebrow">Probability in motion</p>
       <h1>Plink</h1>
       <p class="plaque">Galton's quincunx &middot; 1877</p>
-      <p class="legend"><span class="w">&#9673;</span> the crowded middle &nbsp;·&nbsp; <span class="a">&#9673;</span> a rare edge &mdash; a <b>perfect streak</b> or a <b>wild jump</b></p>
+      <p class="legend"><span class="w">&#9673;</span> the crowded middle &nbsp;·&nbsp; <span class="a">&#9673;</span> the rare edge: a <b>perfect streak</b> or a <b>wild jump</b></p>
     </div>
     <div class="counter"><div class="num" id="count">0</div><div class="lab" id="countlab">balls dropped</div></div>
   </div>
 
   <div class="cabinet">
     <canvas id="board"></canvas>
-    <div class="hint" id="hint">Drop one and follow it &mdash; then pour a hundred.</div>
+    <div class="hint" id="hint">Drop one ball and watch it. Then pour a hundred.</div>
   </div>
 
   <div class="insight" id="insight" aria-live="polite">
     <span class="dot"></span>
-    <span id="insight-text">Drop a ball. You can't guess where one lands &mdash; but drop a thousand and they always make the same hill.</span>
+    <span id="insight-text">Drop a ball. No one can guess where one ball lands. But a thousand balls always make the same hill.</span>
   </div>
 
   <div class="dock" id="dock">
@@ -269,19 +275,19 @@
   <!-- Depth layer: revealed by Lab mode. Home of the fat-tails levers. -->
   <div class="controls labrow" id="labrow">
     <div class="group">
-      <div class="slider"><label for="bias">Right&nbsp;%</label><input type="range" id="bias" min="5" max="95" step="5" value="50"><output id="biasOut">50%</output></div>
+      <div class="slider"><label for="bias">Lean</label><input type="range" id="bias" min="5" max="95" step="5" value="50"><output id="biasOut">50%</output></div>
       <div class="slider"><label for="mom">Streaks</label><input type="range" id="mom" min="0" max="95" step="5" value="0"><output id="momOut">0%</output></div>
-      <div class="slider"><label for="wild">Wild</label><input class="wild" type="range" id="wild" min="0" max="30" step="2" value="0"><output id="wildOut">0%</output></div>
+      <div class="slider"><label for="wild">Wild&nbsp;jumps</label><input class="wild" type="range" id="wild" min="0" max="30" step="2" value="0"><output id="wildOut">0%</output></div>
     </div>
     <div class="group">
-      <div class="stat" id="tailstat">beyond&nbsp;3&sigma; <b>0.0%</b></div>
+      <div class="stat" id="tailstat">far-out&nbsp;balls <b>0.0%</b></div>
       <div class="stat" id="sigmastat">farthest <b>0.0&sigma;</b></div>
       <button id="logscale" aria-pressed="false">Log&nbsp;Y</button>
-      <button id="compare" aria-pressed="false">Side&nbsp;by&nbsp;side</button>
-      <button id="resetrules">Reset rules</button>
+      <button id="compare" aria-pressed="false">Compare</button>
+      <button id="resetrules">Make it fair</button>
     </div>
     <div class="spacer"></div>
-    <div class="stat note">Fair machine &rarr; bell. Rig it &rarr; tails.</div>
+    <div class="stat note">A fair machine makes a bell. A rigged one grows tails.</div>
   </div>
   <p class="railfoot">Galton&rsquo;s quincunx &middot; 1877</p>
   </div>
@@ -293,12 +299,13 @@
   const cvs=document.getElementById('board'), ctx=cvs.getContext('2d');
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const DPR=Math.min(window.devicePixelRatio||1,2);
-  const UIFONT='800 13px ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
+  const UIFONT='800 13px system-ui, -apple-system, sans-serif';
 
   // === CONFIG ===  shared view state + the "rig" (bias/momentum/wild) the levers set.
   const S={ rows:15, speed:1, showBell:true, showPaths:false, sound:false, rainOn:false,
             guessMode:false, depth:'explore', logScale:false, compare:false,
-            bias:0.5, momentum:0, wild:0 };
+            bias:0.5, momentum:0, wild:0,
+            lite:false /* adaptive quality: set by the frame loop when frames run long */ };
 
   // === BOARD (Lever 4) ===
   // One Board = one machine: its own histogram, in-flight balls, effects, geometry, and its
@@ -306,7 +313,8 @@
   function makeBoard(cfg){
     return { bias:cfg.bias, momentum:cfg.momentum, wild:cfg.wild, label:cfg.label||'', rigged:!!cfg.rigged,
              bins:new Map() /* slot -> count; sparse so wild outliers never index out of range */,
-             total:0, farSigma:0, balls:[], flashes:[], parts:[], pending:0, rainAcc:0, geo:{} };
+             total:0, farSigma:0, balls:[], flashes:[], parts:[], pending:0, rainAcc:0, geo:{},
+             pegGlow:new Float32Array(S.rows*(S.rows+1)/2) /* per-peg glance glow, indexed r*(r+1)/2+i */ };
   }
   let boards=[], primary=null, ballId=0;
   let guessBin=null, awaitingGuess=false;
@@ -493,24 +501,40 @@
     const b={ id:++ballId, board, seq, bin, jump, land, r:0, i:0,
       tracked:!!o.tracked, guessEval:!!o.guessEval, glow:info.glow>0, leapt:(jump===0),
       x:g.cx+(Math.random()*2-1)*g.dx*0.85, y:g.apexY-g.dropH-Math.random()*g.dropH*0.5,
-      squash:0, ox:0, oy:0, path:[], trail:[], hop:0.72+Math.random()*0.6 };
+      squash:0, ox:0, oy:0, path:[], trail:[], hop:0.72+Math.random()*0.6, bounced:false, bouncing:false };
     startSeg(b,true); board.balls.push(b);
   }
   function easeInOut(t){ return t<.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
   function updateBall(b,dt){
     const sf=0.5+S.speed*0.5, s=b.seg; s.t+=dt/(s.dur/sf); const t=Math.min(1,s.t);
     b.x=s.ax+(s.bx-s.ax)*easeInOut(t);
-    b.y=b.leaping? s.ay+(s.by-s.ay)*easeInOut(t) : s.ay+(s.by-s.ay)*(t*t);
-    if(b.leaping && !reduce){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>14) b.trail.shift(); }
+    b.y = b.bouncing ? s.ay-s.hup*Math.sin(Math.PI*t)
+        : b.leaping  ? s.ay+(s.by-s.ay)*easeInOut(t)
+        : s.ay+(s.by-s.ay)*(b.r<S.rows? t*t : Math.pow(t,2.2));    // the last drop falls heavier
+    // light trail behind every falling ball (short = motion blur; a leap gets the long comet).
+    // Gated by crowd size + adaptive quality; when gated, old tails burn off point by point.
+    if(!reduce && !S.lite && b.board.balls.length<150){ b.trail.push({x:b.x,y:b.y}); const cap=b.leaping?14:8; if(b.trail.length>cap) b.trail.shift(); }
+    else if(b.trail.length) b.trail.shift();
     b.squash=Math.max(0,b.squash-dt*6); b.ox*=0.82; b.oy*=0.82; // collision offset springs back to the path
     if(s.t>=1){ b.x=s.bx; b.y=s.by;
-      if(b.r<S.rows){ onPeg(b); b.path.push(b.seq[b.r]?'R':'L'); b.i+=b.seq[b.r]; b.r+=1; b.squash=1; startSeg(b,false); }
+      if(b.bouncing){ b.bouncing=false; settle(b); }
+      else if(b.r<S.rows){ onPeg(b); b.path.push(b.seq[b.r]?'R':'L'); b.i+=b.seq[b.r]; b.r+=1; b.squash=1; startSeg(b,false); }
       else if(!b.leapt){ b.leapt=true; startLeap(b); }
+      else if(!b.bounced && !reduce && !S.lite && b.board.balls.length<60){
+        // one soft bounce-settle: a small hop up and back down before the ball counts
+        b.bounced=true; b.leaping=false; b.squash=1;
+        b.seg={ ax:b.x, ay:b.y, bx:b.x, by:b.y, hup:Math.max(3,b.board.geo.dy*0.16), t:0, dur:0.13 };
+        b.bouncing=true;
+      }
       else { b.leaping=false; settle(b); } }
   }
+  // landing ripple: a soft ring of the ball's own colour spreads where it touches down
+  function landFX(b){ if(reduce) return; const g=b.board.geo;
+    b.board.flashes.push({ x:binX(b.board,clampSlot(b.land)), y:g.binBottom-1, life:0.4, max:0.4, r:g.ballR*3.4, ground:true, rgb:binInfo(b.land).rgb }); }
   function settle(b){
     const board=b.board, n=S.rows;
     board.bins.set(b.land,(board.bins.get(b.land)||0)+1); board.total++;
+    landFX(b);
     const mu=n*board.bias, sd=Math.sqrt(Math.max(1e-6, n*board.bias*(1-board.bias)));
     const dev=Math.abs(b.land-mu)/sd; if(dev>board.farSigma) board.farSigma=dev;
     updateCount(); b.dead=true;
@@ -519,7 +543,7 @@
     if(!S.rainOn) thud(b.land);
     if(board===primary && !S.compare && board.total>0 && board.total%60===0
        && board.momentum<=0 && board.wild<=0 && Math.abs(board.bias-0.5)<0.001)
-      setInsight("See the hill? Tall in the middle, tiny at the edges &mdash; that shape is the bell curve.","");
+      setInsight("See the hill? Tall in the middle, tiny at the edges. That shape is the bell curve.","");
   }
 
   // === COLLISION ===  Marbles are solid. After the eased move, a light separation pass pushes
@@ -549,6 +573,7 @@
   /* ---------------- effects ---------------- */
   function onPeg(b){ const board=b.board, g=board.geo;
     board.flashes.push({ x:b.x, y:b.y, life:0.3, max:0.3, r:g.ballR*2 });
+    if(board.pegGlow){ const k=b.r*(b.r+1)/2+b.i; if(k<board.pegGlow.length) board.pegGlow[k]=1; }
     if(!reduce && board.balls.length<70 && board.parts.length<160 && Math.random()<0.7){ const dc=HONEY.join(','); for(let k=0;k<2;k++){ const a=Math.random()*6.283; board.parts.push({ x:b.x,y:b.y,vx:Math.cos(a)*38,vy:Math.sin(a)*38-16,life:.28,max:.28,r:1.5,rgb:dc }); } }
     plink(b.r);
   }
@@ -559,35 +584,66 @@
   function insightSingle(b){
     const path='<code>'+b.path.join(' ')+'</code>';
     if(b.jump!==0){ const mu=S.rows*b.board.bias, sd=Math.sqrt(Math.max(1e-6,S.rows*b.board.bias*(1-b.board.bias))), sig=Math.abs(b.land-mu)/sd;
-      setInsight('Whoa &mdash; that ball skipped the pegs and <b>jumped</b> to slot <code>'+b.land+'</code>, about <b>'+sig.toFixed(1)+'&sigma;</b> out. A fixed-step machine could never reach there. <b>That</b> is a wild tail.','win');
+      setInsight('Whoa! That ball <b>jumped</b> to slot <code>'+b.land+'</code>, about <b>'+sig.toFixed(1)+'&sigma;</b> from the middle. A fair machine could never reach there. <b>That</b> is a wild tail.','win');
       celebrate(b.board, binX(b.board,clampSlot(b.land)), b.board.geo.binBottom-24); chord(); return; }
-    if(b.land===0||b.land===S.rows){ setInsight('This ball went '+path+' to bin <code>'+b.land+'</code>. A perfect '+(b.land===0?'left':'right')+' streak &mdash; about <b>1 in '+Math.pow(2,S.rows).toLocaleString()+'</b>. The edge means winning <b>every</b> bounce.','win'); celebrate(b.board,binX(b.board,b.land),b.board.geo.binBottom-24); chord(); }
+    if(b.land===0||b.land===S.rows){ setInsight('This ball went '+path+' to bin <code>'+b.land+'</code>. A perfect '+(b.land===0?'left':'right')+' streak! That happens about <b>1 in '+Math.pow(2,S.rows).toLocaleString()+'</b> times. The edge means winning <b>every</b> bounce.','win'); celebrate(b.board,binX(b.board,b.land),b.board.geo.binBottom-24); chord(); }
     else setInsight('This ball flipped '+path+' &rarr; bin <code>'+b.land+'</code>. One ball is pure chaos. Now pour a hundred and watch a hill appear.','');
   }
   function evalGuess(landing){
     awaitingGuess=false;
-    if(landing===guessBin){ setInsight('You nailed it &mdash; bin <code>'+guessBin+'</code>! That bin had only about a <b>'+(pmf(S.rows,guessBin)*100).toFixed(1)+'%</b> chance. Tap again.','win'); celebrate(primary,binX(primary,clampSlot(guessBin)),primary.geo.binBottom-24); chord(); }
-    else setInsight('It landed in slot <code>'+landing+'</code>, not <code>'+guessBin+'</code>. A single ball is impossible to call &mdash; that’s the whole idea. Try again.','miss');
+    if(landing===guessBin){ setInsight('You nailed it! Bin <code>'+guessBin+'</code>! That bin only had about a <b>'+(pmf(S.rows,guessBin)*100).toFixed(1)+'%</b> chance. Tap to guess again.','win'); celebrate(primary,binX(primary,clampSlot(guessBin)),primary.geo.binBottom-24); chord(); }
+    else setInsight('It landed in slot <code>'+landing+'</code>, not <code>'+guessBin+'</code>. One ball is impossible to call. That is the whole idea. Try again.','miss');
   }
-  function biasMsg(){ if(Math.abs(S.bias-0.5)<0.001){ setInsight('Pegs fair again &mdash; a balanced coin.',''); return; }
-    setInsight('The hill now leans '+(S.bias>0.5?'right':'left')+' &mdash; but it’s still a <b>bell</b>. A biased coin <b>shifts</b> the peak; it doesn’t fatten the tails. Watch the &ldquo;beyond 3&sigma;&rdquo; readout stay put.',''); }
-  function momMsg(){ if(S.momentum<=0){ setInsight('Streaks off &mdash; every bounce forgets the last. Fair again.',''); return; }
-    setInsight('Streaks now <b>stick</b>: each bounce leans the way the last one went. Watch marbles spill <b>past</b> the predicted curve into the edges &mdash; that overspill <b>is</b> the fat tail. Fair coins have stopped making a bell.','win'); }
-  function wildMsg(){ if(S.wild<=0){ setInsight('Wild jumps off &mdash; every step is a tidy &plusmn;1 again.',''); return; }
-    setInsight('Now a rare bounce can <b>leap</b> instead of nudge &mdash; the fixed step size is broken. A few marbles rocket past the bell into the far margins, and the average becomes hostage to the <b>one</b> giant jump. Welcome to <b>Extremistan</b>.','win'); }
-  function logMsg(){ setInsight(S.logScale? 'Log height: the bell <b>nose-dives</b> at the edges (a parabola falling off a cliff). Fat tails refuse to &mdash; their bars stay stubbornly tall far out. That gap is the whole story.' : 'Back to linear height.',''); }
-  function compareMsg(){ setInsight(S.compare? 'Two machines, one x-scale. <b>Left is fair</b>; <b>right is rigged</b> by your levers. Pour into both &mdash; the middles match, the tails don’t.' : 'Back to one machine.',''); }
+  function biasMsg(){ if(Math.abs(S.bias-0.5)<0.001){ setInsight('The pegs are fair again. A balanced coin.',''); return; }
+    setInsight('The hill now leans '+(S.bias>0.5?'right':'left')+'. But it is still a <b>bell</b>. A leaning coin <b>moves</b> the peak; it does not fatten the tails. Watch the far-out number stay put.',''); }
+  function momMsg(){ if(S.momentum<=0){ setInsight('Streaks off. Every bounce forgets the last one. Fair again.',''); return; }
+    setInsight('Streaks now <b>stick</b>: each bounce copies the last one a little. Watch marbles spill <b>past</b> the curve into the edges. That spill <b>is</b> the fat tail.','win'); }
+  function wildMsg(){ if(S.wild<=0){ setInsight('Wild jumps off. Every step is a tidy &plusmn;1 again.',''); return; }
+    setInsight('Now a rare bounce can <b>leap</b> instead of step. A few marbles rocket far past the bell, and the <b>one</b> giant jump changes everything. Welcome to <b>Extremistan</b>.','win'); }
+  function logMsg(){ setInsight(S.logScale? 'Log height: the bell <b>nose-dives</b> at the edges. Fat tails refuse to. Their bars stay tall far out. That gap is the whole story.' : 'Back to normal height.',''); }
+  function compareMsg(){ setInsight(S.compare? 'Two machines, one floor. <b>Left is fair</b>; <b>right is rigged</b> by your levers. Pour into both: the middles match, the tails do not.' : 'Back to one machine.',''); }
 
   /* ---------------- audio ---------------- */
-  let AC=null, master=null, plinkWin=[];
+  // All synthesized (no files). Off by default; the context is only created inside a user gesture.
+  let AC=null, master=null, plinkWin=[], ambient=null;
   function ensureAudio(){ if(!S.sound) return; if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.9; master.connect(AC.destination); }catch(e){ AC=null; } } if(AC&&AC.state==='suspended') AC.resume(); }
+  // pitch helper: map an index onto a pentatonic scale so a rain of plinks stays musical
+  const PENT=[0,2,4,7,9];
+  function pent(base,i){ i=Math.max(0,i|0); return base*Math.pow(2,(PENT[i%5]+12*(((i/5)|0)%2))/12); }
   function plink(row){ if(!S.sound||!AC) return; const now=AC.currentTime; plinkWin=plinkWin.filter(t=>now-t<0.1); if(plinkWin.length>7) return; plinkWin.push(now);
-    const o=AC.createOscillator(), g=AC.createGain(); o.type='triangle'; o.frequency.value=540+row*26+(Math.random()*18-9);
-    const v=S.rainOn?.026:.055; g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(v,now+.004); g.gain.exponentialRampToValueAtTime(.0001,now+.13); o.connect(g); g.connect(master); o.start(now); o.stop(now+.15); }
-  function thud(slot){ if(!S.sound||!AC||S.rainOn) return; const now=AC.currentTime; const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=150+Math.max(0,Math.min(S.rows,slot))*4;
-    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.05,now+.01); g.gain.exponentialRampToValueAtTime(.0001,now+.2); o.connect(g); g.connect(master); o.start(now); o.stop(now+.22); }
+    const o=AC.createOscillator(), g=AC.createGain(), f=pent(524,row)*(1+(Math.random()*0.012-0.006));
+    o.type='sine'; o.frequency.setValueAtTime(f*0.75,now); o.frequency.exponentialRampToValueAtTime(f,now+.045);
+    const v=S.rainOn?.02:.045; g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(v,now+.006); g.gain.exponentialRampToValueAtTime(.0001,now+.14); o.connect(g); g.connect(master); o.start(now); o.stop(now+.16); }
+  // the landing is a water drop: a soft sine gliding up to pitch, pitched by the landing slot
+  function thud(slot){ if(!S.sound||!AC||S.rainOn) return; const now=AC.currentTime;
+    const o=AC.createOscillator(), g=AC.createGain(), f=pent(196,Math.max(0,Math.min(S.rows,slot)));
+    o.type='sine'; o.frequency.setValueAtTime(f*0.62,now); o.frequency.exponentialRampToValueAtTime(f,now+.07);
+    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.06,now+.012); g.gain.exponentialRampToValueAtTime(.0001,now+.26); o.connect(g); g.connect(master); o.start(now); o.stop(now+.28); }
   function chord(){ if(!S.sound||!AC) return; const now=AC.currentTime; [0,4,7,12].forEach((st,i)=>{ const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=440*Math.pow(2,st/12); const t=now+i*.06;
-    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.085,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+.55); }); }
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.085,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+.55); });
+    const s=AC.createOscillator(), sg=AC.createGain(); s.type='sine'; s.frequency.value=2093;   // bell sparkle on top for the rare-event chime
+    sg.gain.setValueAtTime(.0001,now); sg.gain.exponentialRampToValueAtTime(.035,now+.015); sg.gain.exponentialRampToValueAtTime(.0001,now+.4); s.connect(sg); sg.connect(master); s.start(now); s.stop(now+.45); }
+  // ambient sea pad: two detuned low sines breathing through a slow lowpass, plus a whisper of surf noise
+  function makeNoiseBuffer(){ const len=AC.sampleRate*2, b=AC.createBuffer(1,len,AC.sampleRate), d=b.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1; return b; }
+  function startAmbient(){ if(!AC||ambient) return;
+    const bus=AC.createGain(); bus.gain.value=0; bus.connect(master);
+    const o1=AC.createOscillator(), o2=AC.createOscillator(), lp=AC.createBiquadFilter(), padG=AC.createGain();
+    o1.type='sine'; o2.type='sine'; o1.frequency.value=98; o2.frequency.value=98*1.006;
+    lp.type='lowpass'; lp.frequency.value=420;
+    const lfo=AC.createOscillator(), lfoG=AC.createGain(); lfo.frequency.value=0.07; lfoG.gain.value=160; lfo.connect(lfoG); lfoG.connect(lp.frequency);
+    padG.gain.value=0.11; o1.connect(lp); o2.connect(lp); lp.connect(padG); padG.connect(bus);
+    const nb=AC.createBufferSource(); nb.buffer=makeNoiseBuffer(); nb.loop=true;
+    const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=620; bp.Q.value=0.5;
+    const ng=AC.createGain(); ng.gain.value=0.014;
+    const sl=AC.createOscillator(), slG=AC.createGain(); sl.frequency.value=0.09; slG.gain.value=0.009; sl.connect(slG); slG.connect(ng.gain);
+    nb.connect(bp); bp.connect(ng); ng.connect(bus);
+    [o1,o2,lfo,nb,sl].forEach(nd=>nd.start());
+    bus.gain.setTargetAtTime(0.5, AC.currentTime, 0.8);           // slow fade-in, like a tide coming in
+    ambient={bus, nodes:[o1,o2,lfo,nb,sl]};
+  }
+  function stopAmbient(){ if(!ambient||!AC) return; const a=ambient; ambient=null;
+    a.bus.gain.setTargetAtTime(0, AC.currentTime, 0.4);
+    setTimeout(()=>{ a.nodes.forEach(nd=>{ try{nd.stop()}catch(e){} }); try{a.bus.disconnect()}catch(e){} }, 1400); }
 
   /* ---------------- spawn pump ---------------- */
   function pump(board,dt){
@@ -608,8 +664,62 @@
     dc.forEach(c=>{ if(c>mx) mx=c; });
     return { dc, loP, hiP, mx };
   }
-  function draw(){
+  /* ---------------- aurora (the sky) ---------------- */
+  // Pre-rendered glow blobs blitted additively each frame — never build gradients per frame.
+  // Slow sine drift, concentrated in the upper board, so the histogram shelf stays legible.
+  let auroraBlobs=[], auroraT=12;
+  function makeAuroraBlobs(){
+    auroraBlobs=[];
+    const defs=[ {rgb:CYAN,a:0.11,seed:0.15}, {rgb:CYANS,a:0.08,seed:0.45}, {rgb:hx('12B9AC'),a:0.10,seed:0.72}, {rgb:hx('0B2B33'),a:0.22,seed:0.9} ];  // palette only: cyan, cyan-soft, cyan-deep, bg-glow
+    for(const d of defs){
+      const S0=256, c=document.createElement('canvas'); c.width=c.height=S0; const g=c.getContext('2d');
+      const gr=g.createRadialGradient(S0/2,S0/2,0,S0/2,S0/2,S0/2);
+      gr.addColorStop(0,'rgba('+d.rgb.join(',')+','+d.a+')');
+      gr.addColorStop(0.55,'rgba('+d.rgb.join(',')+','+(d.a*0.4)+')');
+      gr.addColorStop(1,'rgba('+d.rgb.join(',')+',0)');
+      g.fillStyle=gr; g.fillRect(0,0,S0,S0);
+      auroraBlobs.push({ canvas:c,
+        phX:d.seed*6.283, phY:d.seed*9.4, phR:d.seed*4.7,
+        ampX:0.16+d.seed*0.14, ampY:0.07+d.seed*0.06,
+        spd:0.05+d.seed*0.05, baseY:0.10+d.seed*0.26, scale:1.3+d.seed*1.1 });
+    }
+  }
+  function drawAurora(w,h,dt){
+    if(!auroraBlobs.length) return;
+    if(!reduce) auroraT+=dt;                       // reduce-motion: a static wash of light
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    for(const b of auroraBlobs){
+      const bw=w*b.scale, bh=h*0.42*b.scale;       // wide and short: a ribbon of light, not a spotlight
+      const cx=w*(0.5 + b.ampX*Math.sin(auroraT*b.spd+b.phX));
+      const cy=h*(b.baseY + b.ampY*Math.sin(auroraT*b.spd*0.7+b.phY));
+      const rot=0.12*Math.sin(auroraT*b.spd*0.5+b.phR);
+      ctx.setTransform(DPR,0,0,DPR,0,0); ctx.translate(cx,cy); ctx.rotate(rot);
+      ctx.drawImage(b.canvas,-bw/2,-bh/2,bw,bh);
+    }
+    ctx.restore();
+  }
+
+  /* ---------------- peg sprite (luminous points, cached per radius) ---------------- */
+  let pegSprites={};
+  function pegSpriteFor(pegR){
+    const key=Math.round(pegR*4);
+    if(!pegSprites[key]){
+      const draw=Math.ceil(pegR*8), scale=3, S0=draw*scale, c=document.createElement('canvas');
+      c.width=c.height=S0; const g=c.getContext('2d'); const cx=S0/2, R=pegR*scale;
+      const gr=g.createRadialGradient(cx,cx,0,cx,cx,S0/2);
+      gr.addColorStop(0,'rgba('+CYANS.join(',')+',0.55)');
+      gr.addColorStop(0.3,'rgba('+CYAN.join(',')+',0.13)');
+      gr.addColorStop(1,'rgba('+CYAN.join(',')+',0)');
+      g.fillStyle=gr; g.fillRect(0,0,S0,S0);
+      g.fillStyle='rgba(225,244,248,0.9)'; g.beginPath(); g.arc(cx,cx,R*0.85,0,6.2832); g.fill();
+      pegSprites[key]={canvas:c, draw, half:draw/2};
+    }
+    return pegSprites[key];
+  }
+
+  function draw(dt){
     const {w,h}=geoRoot; ctx.clearRect(0,0,w,h);
+    drawAurora(w,h,dt||0);
     for(const d of dust){ ctx.fillStyle='rgba(200,230,240,'+d.a+')'; ctx.beginPath(); ctx.arc(d.x*w,d.y*h,d.r,0,6.2832); ctx.fill(); }
     for(const b of boards) drawBoard(b);
     if(boards.length>1){ const x=boards[1].geo.x0-geoRoot.gap/2; ctx.strokeStyle='rgba(245,238,224,0.10)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,10); ctx.lineTo(x,h-10); ctx.stroke(); }
@@ -631,6 +741,15 @@
     // faint bin gridlines
     ctx.strokeStyle='rgba(245,238,224,0.05)'; ctx.lineWidth=1;
     for(let slot=lo;slot<=hi+1;slot++){ const x=binX(board,slot)-g.dx/2; ctx.beginPath(); ctx.moveTo(x,g.binTop+4); ctx.lineTo(x,g.binBottom); ctx.stroke(); }
+
+    // sea horizon — a faint line of light where the sky meets the shore (the bin shelf)
+    const hzc=CYANS.join(',');
+    const hz=ctx.createLinearGradient(g.x0,0,g.x0+g.w,0);
+    hz.addColorStop(0,'rgba('+hzc+',0)'); hz.addColorStop(0.5,'rgba('+hzc+',0.20)'); hz.addColorStop(1,'rgba('+hzc+',0)');
+    ctx.fillStyle=hz; ctx.fillRect(g.x0+g.w*0.03, g.binTop-1, g.w*0.94, 1.5);
+    const hg=ctx.createLinearGradient(0,g.binTop,0,g.binTop+16);
+    hg.addColorStop(0,'rgba('+hzc+',0.045)'); hg.addColorStop(1,'rgba('+hzc+',0)');
+    ctx.fillStyle=hg; ctx.fillRect(g.x0+g.w*0.03, g.binTop, g.w*0.94, 16);
 
     // bell curve — the shape a NAIVE analyst predicts (binomial mean/sd for THIS board's bias).
     // Under momentum or wild it stops matching: marbles spill past it, and that gap IS the fat tail.
@@ -664,16 +783,33 @@
     if(S.showPaths){ ctx.save(); ctx.textAlign='center'; ctx.font='700 '+Math.max(9,Math.min(g.dx*0.32,13))+'px ui-monospace, monospace';
       for(let b=0;b<=n;b++){ const e=(b===0||b===n); ctx.fillStyle=e?'rgba('+CYAN.join(',')+',0.95)':'rgba(245,238,224,0.4)'; ctx.fillText(comb(n,b).toLocaleString(), binX(board,b), g.binTop-7); } ctx.restore(); }
 
-    // pegs
+    // pegs — luminous points; a peg blooms briefly when a marble glances off it
+    const ps=pegSpriteFor(g.pegR), pg=board.pegGlow;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
     for(let r=0;r<n;r++) for(let i=0;i<=r;i++){ const p=pegPos(board,r,i);
-      ctx.fillStyle='rgba(150,175,190,0.42)'; ctx.beginPath(); ctx.arc(p.x,p.y,g.pegR,0,6.2832); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(p.x-g.pegR*0.3,p.y-g.pegR*0.3,g.pegR*0.4,0,6.2832); ctx.fill(); }
+      const gl=pg? pg[r*(r+1)/2+i]||0 : 0;
+      ctx.globalAlpha=0.55+gl*0.45;
+      ctx.drawImage(ps.canvas, p.x-ps.half, p.y-ps.half, ps.draw, ps.draw); }
+    ctx.restore();
 
     // effects + balls
-    for(const f of board.flashes){ const k=f.life/f.max; ctx.strokeStyle='rgba(255,240,215,'+(0.5*k)+')'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(f.x,f.y,(1-k)*f.r+g.pegR,0,6.2832); ctx.stroke(); }
+    for(const f of board.flashes){ const k=f.life/f.max;
+      if(f.ground){ const rw=(1-k)*f.r+g.ballR*0.8; ctx.strokeStyle='rgba('+f.rgb.join(',')+','+(0.5*k)+')'; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.ellipse(f.x,f.y,rw,rw*0.3,0,0,6.2832); ctx.stroke(); }
+      else { ctx.strokeStyle='rgba(255,240,215,'+(0.5*k)+')'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(f.x,f.y,(1-k)*f.r+g.pegR,0,6.2832); ctx.stroke(); } }
     for(const p of board.parts){ const k=Math.max(0,p.life/p.max); ctx.fillStyle='rgba('+p.rgb+','+k+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r*k+0.3,0,6.2832); ctx.fill(); }
     for(const b of board.balls){
-      if(b.trail.length){ const tc=CYAN.join(','); for(let i=0;i<b.trail.length;i++){ const tp=b.trail[i], a=(i/b.trail.length)*0.5; ctx.fillStyle='rgba('+tc+','+a+')'; ctx.beginPath(); ctx.arc(tp.x,tp.y,g.ballR*0.55*(i/b.trail.length+0.35),0,6.2832); ctx.fill(); } }
+      if(b.trail.length>1){
+        // one additive polyline per ball, old half faint + new half bright so the tail tapers;
+        // coloured by the ball's LIVE slot so the trail teaches the same colour lesson as the marble
+        const tc=binInfo(ballColorSlot(b)).rgb.join(','), L=b.trail.length, mid=L>>1, hot=b.leaping?0.5:0.3;
+        ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.strokeStyle='rgba('+tc+','+(hot*0.35)+')'; ctx.lineWidth=g.ballR*0.5;
+        ctx.beginPath(); ctx.moveTo(b.trail[0].x,b.trail[0].y); for(let i=1;i<=mid;i++) ctx.lineTo(b.trail[i].x,b.trail[i].y); ctx.stroke();
+        ctx.strokeStyle='rgba('+tc+','+hot+')'; ctx.lineWidth=g.ballR*0.8;
+        ctx.beginPath(); ctx.moveTo(b.trail[mid].x,b.trail[mid].y); for(let i=mid+1;i<L;i++) ctx.lineTo(b.trail[i].x,b.trail[i].y); ctx.stroke();
+        ctx.restore();
+      }
       const sx=1+0.28*b.squash; drawMarble(ballColorSlot(b), b.x+b.ox, b.y+b.oy, g.ballR*sx, (1-0.28*b.squash));
     }
 
@@ -691,8 +827,10 @@
   }
 
   /* ---------------- loop ---------------- */
-  let lastT=performance.now();
-  function frame(now){ let dt=(now-lastT)/1000; lastT=now; if(dt>0.05) dt=0.05;
+  let lastT=performance.now(), ftAvg=16;
+  // tick(dt) is the whole per-frame body, separated from the rAF plumbing so it can be driven
+  // manually (verification stepper now, Learn-mode scripting later).
+  function tick(dt){
     for(const board of boards){
       pump(board,dt);
       for(const b of board.balls) if(!b.dead) updateBall(b,dt);
@@ -700,8 +838,14 @@
       if(board.balls.some(b=>b.dead)) board.balls=board.balls.filter(b=>!b.dead);
       for(const f of board.flashes) f.life-=dt; if(board.flashes.length) board.flashes=board.flashes.filter(f=>f.life>0);
       for(const p of board.parts){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=360*dt; } if(board.parts.length) board.parts=board.parts.filter(p=>p.life>0);
+      const pg=board.pegGlow; if(pg){ const dk=Math.exp(-dt*5); for(let k=0;k<pg.length;k++){ if(pg[k]>0.02) pg[k]*=dk; else if(pg[k]) pg[k]=0; } }
     }
-    draw(); requestAnimationFrame(frame);
+    draw(dt);
+  }
+  function frame(now){ const ms=now-lastT; let dt=ms/1000; lastT=now; if(dt>0.05) dt=0.05;
+    // adaptive quality: if frames run long, shed the juice (trails, bounce) until it recovers
+    if(ms<250){ ftAvg=ftAvg*0.9+ms*0.1; if(ftAvg>22) S.lite=true; else if(ftAvg<17) S.lite=false; }
+    tick(dt); requestAnimationFrame(frame);
   }
 
   /* ---------------- controls ---------------- */
@@ -714,20 +858,32 @@
   rainBtn.addEventListener('click',()=>{ firstTouch(); ensureAudio(); S.rainOn=!S.rainOn; if(S.rainOn){ S.guessMode=false; syncGuess(); } rainBtn.setAttribute('aria-pressed',S.rainOn?'true':'false'); rainFace.innerHTML=S.rainOn?'<span class="live"></span>Raining':'Rain'; });
   const guessBtn=document.getElementById('guess');
   function syncGuess(){ guessBtn.setAttribute('aria-pressed',S.guessMode?'true':'false'); }
-  guessBtn.addEventListener('click',()=>{ if(S.compare) return; firstTouch(); S.guessMode=!S.guessMode; if(S.guessMode){ S.rainOn=false; rainBtn.setAttribute('aria-pressed','false'); rainFace.textContent='Rain'; guessBin=null; awaitingGuess=false; setInsight('Tap the bin where you think the next ball will land.',''); } else setInsight('Drop a ball. You can’t guess where one lands &mdash; but a thousand always make the same hill.',''); syncGuess(); });
-  document.getElementById('reset').addEventListener('click',()=>{ buildBoards(); setInsight('Cleared. Drop a ball &mdash; one is a mystery, a thousand are a hill.',''); });
+  guessBtn.addEventListener('click',()=>{ if(S.compare) return; firstTouch(); S.guessMode=!S.guessMode; if(S.guessMode){ S.rainOn=false; rainBtn.setAttribute('aria-pressed','false'); rainFace.textContent='Rain'; guessBin=null; awaitingGuess=false; setInsight('Tap the bin where you think the next ball will land.',''); } else setInsight('Drop a ball. No one can guess where one ball lands. But a thousand always make the same hill.',''); syncGuess(); });
+  document.getElementById('reset').addEventListener('click',()=>{ buildBoards(); setInsight('Cleared. One ball is a mystery. A thousand make a hill.',''); });
 
-  toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers are how many <b>paths</b> reach each bin. Loads of ways to the middle; only <b>one</b> way to each edge.',''); });
-  document.getElementById('sound').addEventListener('click',function(){ S.sound=!S.sound; this.setAttribute('aria-pressed',S.sound?'true':'false'); if(S.sound) ensureAudio(); });
+  toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers show how many <b>paths</b> reach each bin. Lots of ways to the middle. Only <b>one</b> way to each edge.',''); });
+  document.getElementById('sound').addEventListener('click',function(){ S.sound=!S.sound; this.setAttribute('aria-pressed',S.sound?'true':'false'); if(S.sound){ ensureAudio(); startAmbient(); } else stopAmbient(); });
 
-  // Options toggle — reveals the rows / speed / view-toggle panel so the default bottom bar stays lean.
-  document.getElementById('opts').addEventListener('click',function(){ const on=!document.getElementById('optsrow').classList.contains('on');
-    this.setAttribute('aria-pressed',on?'true':'false'); document.getElementById('optsrow').classList.toggle('on',on); });
+  // Options / Lab are ONE accordion: opening a panel closes its sibling; tapping the open one closes it.
+  // (The old independent toggles let both panels stack open at once.)
+  function setPanel(which){
+    const optsOn=which==='opts', labOn=which==='lab';
+    document.getElementById('optsrow').classList.toggle('on',optsOn);
+    document.getElementById('labrow').classList.toggle('on',labOn);
+    document.getElementById('opts').setAttribute('aria-pressed',optsOn?'true':'false');
+    document.getElementById('lab').setAttribute('aria-pressed',labOn?'true':'false');
+    S.depth = labOn?'lab':'explore';
+  }
+  document.getElementById('opts').addEventListener('click',()=>{
+    setPanel(document.getElementById('optsrow').classList.contains('on')? null : 'opts'); });
+  document.getElementById('lab').addEventListener('click',()=>{
+    const open=!document.getElementById('labrow').classList.contains('on');
+    setPanel(open?'lab':null);
+    if(open) setInsight('Lab mode: now you can <b>rig</b> the machine. Lean the pegs, make streaks stick, or add wild jumps. Then watch the tidy hill break.',''); });
 
-  // Lab (depth) toggle — reveals the fat-tails levers.
-  document.getElementById('lab').addEventListener('click',function(){ S.depth = S.depth==='lab'?'explore':'lab'; const on=S.depth==='lab';
-    this.setAttribute('aria-pressed',on?'true':'false'); document.getElementById('labrow').classList.toggle('on',on);
-    if(on) setInsight('Lab mode: now you can <b>rig</b> the machine. Lean the pegs, make streaks stick, or add <b>wild</b> jumps &mdash; and watch the tidy hill break.',''); });
+  // meter fill: paint the filled part of each track (the CSS gradient reads --fill)
+  function paintFill(el){ const pct=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--fill',pct+'%'); }
+  document.querySelectorAll('input[type=range]').forEach(el=>{ paintFill(el); el.addEventListener('input',()=>paintFill(el)); });
 
   const rowsI=document.getElementById('rows'), rowsO=document.getElementById('rowsOut');
   rowsI.addEventListener('input',()=>{ S.rows=+rowsI.value; rowsO.textContent=rowsI.value; spriteCache={}; buildBoards(); });
@@ -752,7 +908,8 @@
 
   document.getElementById('resetrules').addEventListener('click',()=>{ S.bias=0.5; S.momentum=0; S.wild=0;
     biasI.value=50; biasO.textContent='50%'; momI.value=0; momO.textContent='0%'; wildI.value=0; wildO.textContent='0%';
-    applyRig(); updateCount(); setInsight('Rules reset &mdash; fair machine again.',''); });
+    paintFill(biasI); paintFill(momI); paintFill(wildI);
+    applyRig(); updateCount(); setInsight('The machine is fair again.',''); });
 
   cvs.addEventListener('pointerdown',e=>{ if(!S.guessMode||awaitingGuess||S.compare) return; firstTouch(); ensureAudio();
     const rc=cvs.getBoundingClientRect(), x=e.clientX-rc.left, g=primary.geo; let b=Math.round((x-g.cx)/g.dx+g.n/2); b=Math.max(0,Math.min(S.rows,b));
@@ -768,7 +925,7 @@
   if('ResizeObserver' in window){ new ResizeObserver(remeasure).observe(cvs.parentElement); }
   window.addEventListener('resize', remeasure);
   window.addEventListener('orientationchange', remeasure);
-  measure(); buildBoards(); requestAnimationFrame(frame);
+  measure(); makeAuroraBlobs(); buildBoards(); requestAnimationFrame(frame);
 
   // === ARCHITECTURE (Lever 4, side-by-side) ===
   // State + geometry + effects now live on a Board object (makeBoard). `boards` holds one machine

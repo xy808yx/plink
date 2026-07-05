@@ -24,16 +24,16 @@ Break any one of those and the bell dies. That is the real lesson living behind 
 
 Flip on **Lab** and you get levers that rig the machine. Each one attacks a different assumption, and each one drags you out of the tidy world of averages (Benoit Mandelbrot's **Mediocristan**) into the world where one freak event swamps everything else (**Extremistan**).
 
-- **Bias** leans the pegs. The hill slides left or right, but it stays a bell. A loaded coin *shifts* the peak; it does not fatten the tails. This is the control case, and the "beyond 3σ" readout barely moves, which is exactly the point.
-- **Streaks (momentum)** makes each bounce lean the way the last one went. Now the bounces are no longer independent. Marbles spill *past* the curve into the edges, and that overspill **is** the fat tail.
-- **Wild (Lévy jumps)** lets a rare bounce abandon the fixed step size and take one enormous, heavy-tailed leap. A few marbles rocket off the chart while the average becomes hostage to the single biggest jump. This is the mathematical signature of a market crash, a viral hit, a war.
+- **Lean** (bias) tilts the pegs. The hill slides left or right, but it stays a bell. A loaded coin *shifts* the peak; it does not fatten the tails. This is the control case, and the "far-out balls" readout barely moves, which is exactly the point.
+- **Streaks** (momentum) makes each bounce lean the way the last one went. Now the bounces are no longer independent. Marbles spill *past* the curve into the edges, and that overspill **is** the fat tail.
+- **Wild jumps** (Lévy) lets a rare bounce abandon the fixed step size and take one enormous, heavy-tailed leap. A few marbles rocket off the chart while the average becomes hostage to the single biggest jump. This is the mathematical signature of a market crash, a viral hit, a war.
 
 Two readouts keep the adults honest:
 
-- **beyond 3σ** measures how much mass lands past three standard deviations of the bell the machine *should* produce. Under a fair board it sits near the Gaussian 0.3%. Rig it and it climbs into double digits.
+- **far-out balls** measures how much mass lands past three standard deviations (3σ) of the bell the machine *should* produce. Under a fair board it sits near the Gaussian 0.3%. Rig it and it climbs into double digits.
 - **farthest** reports how many standard deviations out the single most extreme marble was. In Extremistan this number is absurd, 50σ, 100σ, events a Gaussian says should never happen in the lifetime of the universe.
 
-Toggle **Log Y** and the punchline lands: on a log axis the bell nose-dives at the edges like a parabola falling off a cliff, while a fat tail refuses to, its bars staying stubbornly tall far out. And **Side by side** races a fair board against a rigged one on a shared x-scale, so the middles line up and the tails visibly diverge.
+Toggle **Log Y** and the punchline lands: on a log axis the bell nose-dives at the edges like a parabola falling off a cliff, while a fat tail refuses to, its bars staying stubbornly tall far out. And **Compare** races a fair board against a rigged one on a shared x-scale, so the middles line up and the tails visibly diverge.
 
 ## Who this is for
 
