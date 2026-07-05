@@ -6,7 +6,7 @@
 <title>Plink</title>
 <style>
   :root{
-    --bg-top:#0c1a26; --bg-mid:#0a141d; --bg-bot:#060c12;
+    --bg-top:#0c1a26; --bg-mid:#0a141d; --bg-bot:#060c12; --bg-glow:#163243;
     --ink:#F5EEE0; --ink-dim:rgba(245,238,224,.60); --ink-faint:rgba(245,238,224,.32);
     --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.11);
     --line:rgba(245,238,224,.13);
@@ -21,7 +21,7 @@
   body{
     font-family:var(--font); color:var(--ink);
     background:
-      radial-gradient(140% 100% at 50% -20%, #163243 0%, transparent 52%),
+      radial-gradient(140% 100% at 50% -20%, var(--bg-glow) 0%, transparent 52%),
       linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
     overflow:hidden; -webkit-font-smoothing:antialiased;
   }
@@ -69,9 +69,9 @@
   button.primary{ background:linear-gradient(180deg,var(--amber),var(--amber-deep)); border-color:transparent; color:#2a1405; box-shadow:0 9px 22px -11px var(--amber-deep); }
   button.primary:hover{ filter:brightness(1.05); }
   button.pulse{ animation:pulse 1.9s ease-in-out infinite; }
-  @keyframes pulse{ 0%,100%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 0 rgba(255,178,76,.5);} 50%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 11px rgba(255,178,76,0);} }
-  button[aria-pressed="true"]{ background:var(--surface-2); border-color:rgba(84,236,220,.5); box-shadow:inset 0 0 0 1px rgba(84,236,220,.25); }
-  button.rain[aria-pressed="true"]{ border-color:rgba(255,178,76,.6); box-shadow:inset 0 0 0 1px rgba(255,178,76,.3); }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 0 color-mix(in srgb, var(--amber) 50%, transparent);} 50%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 11px transparent;} }
+  button[aria-pressed="true"]{ background:var(--surface-2); border-color:color-mix(in srgb, var(--cyan) 50%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cyan) 25%, transparent); }
+  button.rain[aria-pressed="true"]{ border-color:color-mix(in srgb, var(--amber) 60%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--amber) 30%, transparent); }
   button .live{ width:8px; height:8px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px var(--amber); animation:blink 1s ease-in-out infinite; }
   @keyframes blink{ 50%{ opacity:.25; } }
 
@@ -85,12 +85,20 @@
   input[type=range].wild::-webkit-slider-thumb{ background:var(--cyan); }
   input[type=range].wild::-moz-range-thumb{ background:var(--cyan); }
 
+  /* colours row — a swatch picker revealed by the Colors button */
+  .themebar{ padding-top:2px; } .themebar:not(.on){ display:none; }
+  .swatch{ position:relative; width:58px; height:36px; padding:0; border-radius:11px; border:1px solid var(--line); overflow:hidden; flex:0 0 auto; }
+  .swatch .pop{ position:absolute; right:5px; bottom:5px; width:10px; height:10px; border-radius:50%; box-shadow:0 0 8px currentColor, 0 0 2px currentColor; }
+  .swatch .nm{ position:absolute; left:6px; top:4px; right:4px; font-size:8.5px; font-weight:800; letter-spacing:.01em; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.7); text-align:left; line-height:1; }
+  .swatch[aria-pressed="true"]{ border-color:transparent; box-shadow:0 0 0 2px var(--ink), 0 6px 16px -6px #000; }
+  .swatch:hover{ transform:translateY(-1px); }
+
   /* lab (depth) row — hidden until Lab mode is on */
   .labrow:not(.on){ display:none; }
   .stat{ display:flex; align-items:center; gap:7px; padding:9px 14px; background:var(--surface); border:1px solid var(--line);
     border-radius:12px; min-height:44px; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
   .stat b{ font-family:var(--mono); font-weight:600; color:var(--honey); font-variant-numeric:tabular-nums; }
-  .stat.hot{ border-color:rgba(84,236,220,.5); } .stat.hot b{ color:var(--cyan); }
+  .stat.hot{ border-color:color-mix(in srgb, var(--cyan) 50%, transparent); } .stat.hot b{ color:var(--cyan); }
   .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; font-style:italic; font-family:var(--serif); }
 
   @media (max-width:560px){
@@ -115,7 +123,7 @@
       <p class="eyebrow">Probability in motion</p>
       <h1>Plink</h1>
       <p class="plaque">Galton's quincunx &middot; 1877</p>
-      <p class="legend"><span class="w">&#9673; Warm</span> = the crowded middle &nbsp;·&nbsp; <span class="a">&#9673; Cyan</span> = a rare edge, a <b>perfect streak</b> or a <b>wild jump</b></p>
+      <p class="legend"><span class="w">&#9673;</span> the crowded middle &nbsp;·&nbsp; <span class="a">&#9673;</span> a rare edge &mdash; a <b>perfect streak</b> or a <b>wild jump</b></p>
     </div>
     <div class="counter"><div class="num" id="count">0</div><div class="lab" id="countlab">balls dropped</div></div>
   </div>
@@ -147,9 +155,13 @@
       <button id="bell" aria-pressed="true">Bell curve</button>
       <button id="paths" aria-pressed="false">Show paths</button>
       <button id="sound" aria-pressed="false">Sound</button>
+      <button id="theme" aria-pressed="false">&#127752; Colors</button>
       <button id="lab" aria-pressed="false">&#129514; Lab</button>
     </div>
   </div>
+
+  <!-- Colours layer: revealed by the Colors button. Kid-facing palette picker. -->
+  <div class="controls themebar" id="themebar"><div class="group" id="swatches"></div></div>
 
   <!-- Depth layer: revealed by Lab mode. Home of the fat-tails levers. -->
   <div class="controls labrow" id="labrow">
@@ -218,7 +230,7 @@
 
   /* ---------------- colour ---------------- */
   function hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
-  const HONEY=hx('FFCB6B'), AMBER=hx('FF9A52'), AMBERD=hx('F2743C'), CYAN=hx('54ECDC'), CYANS=hx('9BF1E6');
+  let HONEY=hx('FFCB6B'), AMBER=hx('FF9A52'), AMBERD=hx('F2743C'), CYAN=hx('54ECDC'), CYANS=hx('9BF1E6');
   function mix(a,b,t){ t=Math.max(0,Math.min(1,t)); return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)]; }
   // Colour by rarity only (distance from the peg centre), so sprites are shared across boards.
   // Slots beyond the peg spread can only be reached by a wild jump — they glow cyan, brighter the farther out.
@@ -229,6 +241,43 @@
     if(slot===1||slot===n-1) return {rgb:CYANS, glow:.4};
     const t=Math.min(1,(d/md)/0.82);
     return {rgb: t<0.5? mix(HONEY,AMBER,t*2) : mix(AMBER,AMBERD,(t-0.5)*2), glow:0};
+  }
+
+  /* ---------------- palettes / theming ---------------- */
+  // Each palette speaks both colour languages: CSS custom props (UI chrome) and the JS marble vars
+  // (HONEY/AMBER/AMBERD = the calm common ramp, CYANS/CYAN = the rare-edge pop). Swapping a theme
+  // rewrites both and clears the sprite cache so marbles re-render in the new colours. The invariant
+  // every palette keeps: the crowded middle stays calm, the rare edge pops.
+  const PALETTES=[
+    { key:'twilight', name:'Twilight', bg:['#0c1a26','#0a141d','#060c12'], ink:'#F5EEE0', mid:['#FFCB6B','#FF9A52','#F2743C'], rare:['#9BF1E6','#54ECDC'], action:'#FFB24C' },
+    { key:'nebula',   name:'Nebula',   bg:['#1C1440','#120C2E','#0A0620'], ink:'#F3EEFF', mid:['#F7C9C0','#EBA7A8','#C97E92'], rare:['#4DE3F0','#B6FBFF'], action:'#B15CFF' },
+    { key:'reef',     name:'Reef',     bg:['#0A4257','#083344','#04212E'], ink:'#F4EBDD', mid:['#FFC98A','#F5A268','#D8794A'], rare:['#22D3C4','#5CFCE8'], action:'#FF6B4A' },
+    { key:'lava',     name:'Lava',     bg:['#2B0F14','#3D1417','#1A080C'], ink:'#FFE9D6', mid:['#FFB37A','#FF7A3C','#E24518'], rare:['#38D0FF','#7DF5FF'], action:'#FF4D80' },
+    { key:'candy',    name:'Candy',    bg:['#2A0E22','#3A1330','#24122E'], ink:'#FFEAF4', mid:['#FFC4D6','#F58FB6','#D96BA6'], rare:['#5FF0D0','#39FFE6'], action:'#FF4FA3' },
+  ];
+  const DEFAULT_THEME='nebula';
+  function scale(hex,f){ return '#'+hx(hex).map(v=>Math.max(0,Math.min(255,Math.round(v*f))).toString(16).padStart(2,'0')).join(''); }
+  function lift(hex,f){ return '#'+hx(hex).map(v=>Math.round(v+(255-v)*f).toString(16).padStart(2,'0')).join(''); }
+  function rgbaOf(hex,a){ const p=hx(hex); return 'rgba('+p[0]+','+p[1]+','+p[2]+','+a+')'; }
+  function applyTheme(key){
+    const pal=PALETTES.find(p=>p.key===key)||PALETTES[0];
+    const rs=document.documentElement.style;
+    rs.setProperty('--bg-top',pal.bg[0]); rs.setProperty('--bg-mid',pal.bg[1]); rs.setProperty('--bg-bot',pal.bg[2]);
+    rs.setProperty('--bg-glow',lift(pal.bg[0],0.12));
+    rs.setProperty('--ink',pal.ink);
+    rs.setProperty('--ink-dim',rgbaOf(pal.ink,0.60)); rs.setProperty('--ink-faint',rgbaOf(pal.ink,0.32)); rs.setProperty('--line',rgbaOf(pal.ink,0.13));
+    rs.setProperty('--honey',pal.mid[0]); rs.setProperty('--amber',pal.action); rs.setProperty('--amber-deep',scale(pal.action,0.82));
+    rs.setProperty('--cyan',pal.rare[1]); rs.setProperty('--cyan-deep',pal.rare[0]);
+    HONEY=hx(pal.mid[0]); AMBER=hx(pal.mid[1]); AMBERD=hx(pal.mid[2]); CYANS=hx(pal.rare[0]); CYAN=hx(pal.rare[1]);
+    spriteCache={};
+    const sw=document.getElementById('swatches'); if(sw) for(const el of sw.children) el.setAttribute('aria-pressed', el.dataset.key===pal.key?'true':'false');
+    try{ localStorage.setItem('plink_theme',pal.key); }catch(e){}
+  }
+  function buildSwatches(){ const sw=document.getElementById('swatches'); if(!sw) return; sw.innerHTML='';
+    for(const pal of PALETTES){ const b=document.createElement('button'); b.className='swatch'; b.dataset.key=pal.key; b.title=pal.name; b.setAttribute('aria-label','Colours: '+pal.name);
+      b.style.background='linear-gradient(135deg,'+pal.mid[0]+' 0%,'+pal.mid[1]+' 52%,'+pal.mid[2]+' 100%)';
+      b.innerHTML='<span class="nm">'+pal.name+'</span><span class="pop" style="background:'+pal.rare[1]+';color:'+pal.rare[1]+'"></span>';
+      b.addEventListener('click',()=>applyTheme(pal.key)); sw.appendChild(b); }
   }
 
   /* ---------------- marble sprite (pre-rendered, blitted) ---------------- */
@@ -255,6 +304,16 @@
   }
   function sprite(slot){ if(!spriteCache[slot]){ const info=binInfo(slot); spriteCache[slot]=makeMarble(info.rgb.join(','), info.glow); } return spriteCache[slot]; }
   function drawMarble(slot,x,y,r,sy){ const s=sprite(slot), sc=r/s.R0, w=s.size*sc, h=s.size*sc*(sy||1); ctx.drawImage(s.canvas, x-w/2, y-h/2, w, h); }
+  // A ball's colour tracks WHERE IT IS, not where it will end up: while it walks the pegs it wears
+  // its current column's colour, and only reveals its true slot when it drops in / leaps / settles.
+  // MUST return an integer in 0..rows so the sprite cache stays keyed by whole slots (uses this
+  // ball's OWN board geo so side-by-side boards colour independently).
+  function ballColorSlot(b){ const g=b.board.geo, n=S.rows;
+    if(b.leaping) return b.land;                       // the wild leap: reveal the outlier colour
+    if(b.jump!==0 ? b.leapt : b.r>=n) return b.land;   // past the pegs / settled: show the true bin
+    if(b.r===0) return n>>1;                            // still funnelling to the apex: everyone's typical
+    return Math.max(0,Math.min(n, Math.round((b.x-g.cx)/g.dx + n/2)));
+  }
 
   /* ---------------- geometry ---------------- */
   // === BIN DOMAIN ===  bins are slots on the floor; slot n/2 sits under the peg apex.
@@ -321,8 +380,12 @@
 
   /* ---------------- balls ---------------- */
   function segTarget(b){ const g=b.board.geo;
-    return b.r<S.rows? pegPos(b.board,b.r,b.i) : { x:binX(b.board,b.bin), y:g.binBottom-g.ballR }; }
-  function startSeg(b,first){ const t=segTarget(b); b.seg={ ax:b.x, ay:b.y, bx:t.x, by:t.y, t:0, dur:(first?0.34:0.30)*b.hop }; }
+    // A touch of lateral wobble on the peg glance keeps a poured crowd from marching in a rigid lattice;
+    // the final drop into the bin is exact so landings stay honest.
+    if(b.r<S.rows){ const p=pegPos(b.board,b.r,b.i); return { x:p.x+(Math.random()*2-1)*g.dx*0.08, y:p.y }; }
+    return { x:binX(b.board,b.bin), y:g.binBottom-g.ballR }; }
+  // Per-segment duration jitter desyncs neighbouring balls so a flood fans into a curtain, not a snake.
+  function startSeg(b,first){ const t=segTarget(b); b.seg={ ax:b.x, ay:b.y, bx:t.x, by:t.y, t:0, dur:(first?0.34:0.30)*b.hop*(0.82+Math.random()*0.36) }; }
   // A wild ball walks the pegs to bin, then LEAPS sideways to its true outlier slot — the visual
   // of a broken step size.
   function startLeap(b){ const g=b.board.geo; b.seg={ ax:b.x, ay:b.y, bx:binX(b.board,clampSlot(b.land)), by:g.binBottom-g.ballR, t:0, dur:0.26 }; b.leaping=true; }
@@ -353,7 +416,8 @@
     const land=bin+jump, info=binInfo(land);
     const b={ id:++ballId, board, seq, bin, jump, land, r:0, i:0,
       tracked:!!o.tracked, guessEval:!!o.guessEval, glow:info.glow>0, leapt:(jump===0),
-      x:g.cx+(Math.random()*2-1)*g.dx*0.3, y:g.apexY-g.dropH, squash:0, path:[], trail:[], hop:0.85+Math.random()*0.3 };
+      x:g.cx+(Math.random()*2-1)*g.dx*0.85, y:g.apexY-g.dropH-Math.random()*g.dropH*0.5,
+      squash:0, path:[], trail:[], hop:0.72+Math.random()*0.6 };
     startSeg(b,true); board.balls.push(b);
   }
   function easeInOut(t){ return t<.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
@@ -385,10 +449,10 @@
   /* ---------------- effects ---------------- */
   function onPeg(b){ const board=b.board, g=board.geo;
     board.flashes.push({ x:b.x, y:b.y, life:0.3, max:0.3, r:g.ballR*2 });
-    if(!reduce && board.balls.length<70 && board.parts.length<160 && Math.random()<0.7){ for(let k=0;k<2;k++){ const a=Math.random()*6.283; board.parts.push({ x:b.x,y:b.y,vx:Math.cos(a)*38,vy:Math.sin(a)*38-16,life:.28,max:.28,r:1.5,rgb:'255,220,150' }); } }
+    if(!reduce && board.balls.length<70 && board.parts.length<160 && Math.random()<0.7){ const dc=HONEY.join(','); for(let k=0;k<2;k++){ const a=Math.random()*6.283; board.parts.push({ x:b.x,y:b.y,vx:Math.cos(a)*38,vy:Math.sin(a)*38-16,life:.28,max:.28,r:1.5,rgb:dc }); } }
     plink(b.r);
   }
-  function celebrate(board,x,y){ if(reduce) return; for(let k=0;k<26;k++){ const a=Math.random()*6.283, sp=70+Math.random()*160; board.parts.push({ x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-50,life:.9+Math.random()*.5,max:1.4,r:2.2+Math.random()*1.7,rgb:Math.random()<.5?'84,236,220':'255,203,107' }); } }
+  function celebrate(board,x,y){ if(reduce) return; const rc=CYAN.join(','), wc=HONEY.join(','); for(let k=0;k<26;k++){ const a=Math.random()*6.283, sp=70+Math.random()*160; board.parts.push({ x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-50,life:.9+Math.random()*.5,max:1.4,r:2.2+Math.random()*1.7,rgb:Math.random()<.5?rc:wc }); } }
 
   /* ---------------- insight ---------------- */
   function setInsight(t,tone){ document.getElementById('insight').className='insight'+(tone?(' '+tone):''); document.getElementById('insight-text').innerHTML=t; }
@@ -462,7 +526,7 @@
                            : (v)=> v*Math.min(g.baseUnit, plotH/Math.max(1,mx));
 
     // guess overlay (single board only)
-    if(S.guessMode && single){ for(let slot=lo;slot<=hi;slot++){ const x=binX(board,slot); ctx.strokeStyle='rgba(84,236,220,0.14)'; ctx.lineWidth=1; rr(x-g.dx*0.44,g.binTop,g.dx*0.88,g.binAreaH,7); ctx.stroke(); } }
+    if(S.guessMode && single){ const gc='rgba('+CYAN.join(',')+',0.14)'; for(let slot=lo;slot<=hi;slot++){ const x=binX(board,slot); ctx.strokeStyle=gc; ctx.lineWidth=1; rr(x-g.dx*0.44,g.binTop,g.dx*0.88,g.binAreaH,7); ctx.stroke(); } }
 
     // faint bin gridlines
     ctx.strokeStyle='rgba(245,238,224,0.05)'; ctx.lineWidth=1;
@@ -489,8 +553,8 @@
         for(let j=0;j<K;j++) drawMarble(slot, cxb, g.binBottom-(j+0.5)*step, mr); });
     }
     // off-chart chevrons — outliers pinned at the wall
-    if(loP){ ctx.fillStyle='rgba(84,236,220,0.9)'; ctx.font=UIFONT; ctx.textAlign='left'; ctx.fillText('‹ '+loP, binX(board,lo)-g.dx*0.4, g.binTop-6); }
-    if(hiP){ ctx.fillStyle='rgba(84,236,220,0.9)'; ctx.font=UIFONT; ctx.textAlign='right'; ctx.fillText(hiP+' ›', binX(board,hi)+g.dx*0.4, g.binTop-6); }
+    if(loP){ ctx.fillStyle='rgba('+CYAN.join(',')+',0.9)'; ctx.font=UIFONT; ctx.textAlign='left'; ctx.fillText('‹ '+loP, binX(board,lo)-g.dx*0.4, g.binTop-6); }
+    if(hiP){ ctx.fillStyle='rgba('+CYAN.join(',')+',0.9)'; ctx.font=UIFONT; ctx.textAlign='right'; ctx.fillText(hiP+' ›', binX(board,hi)+g.dx*0.4, g.binTop-6); }
 
     // floor
     const fs=ctx.createLinearGradient(0,g.binBottom,0,g.binBottom+22); fs.addColorStop(0,'rgba(255,255,255,0.09)'); fs.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=fs; ctx.fillRect(g.x0,g.binBottom,g.w,22);
@@ -498,7 +562,7 @@
 
     // path counts (only meaningful inside the peg spread)
     if(S.showPaths){ ctx.save(); ctx.textAlign='center'; ctx.font='700 '+Math.max(9,Math.min(g.dx*0.32,13))+'px ui-monospace, monospace';
-      for(let b=0;b<=n;b++){ const e=(b===0||b===n); ctx.fillStyle=e?'rgba(84,236,220,0.95)':'rgba(245,238,224,0.4)'; ctx.fillText(comb(n,b).toLocaleString(), binX(board,b), g.binTop-7); } ctx.restore(); }
+      for(let b=0;b<=n;b++){ const e=(b===0||b===n); ctx.fillStyle=e?'rgba('+CYAN.join(',')+',0.95)':'rgba(245,238,224,0.4)'; ctx.fillText(comb(n,b).toLocaleString(), binX(board,b), g.binTop-7); } ctx.restore(); }
 
     // pegs
     for(let r=0;r<n;r++) for(let i=0;i<=r;i++){ const p=pegPos(board,r,i);
@@ -509,8 +573,8 @@
     for(const f of board.flashes){ const k=f.life/f.max; ctx.strokeStyle='rgba(255,240,215,'+(0.5*k)+')'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(f.x,f.y,(1-k)*f.r+g.pegR,0,6.2832); ctx.stroke(); }
     for(const p of board.parts){ const k=Math.max(0,p.life/p.max); ctx.fillStyle='rgba('+p.rgb+','+k+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r*k+0.3,0,6.2832); ctx.fill(); }
     for(const b of board.balls){
-      if(b.trail.length){ for(let i=0;i<b.trail.length;i++){ const tp=b.trail[i], a=(i/b.trail.length)*0.5; ctx.fillStyle='rgba(84,236,220,'+a+')'; ctx.beginPath(); ctx.arc(tp.x,tp.y,g.ballR*0.55*(i/b.trail.length+0.35),0,6.2832); ctx.fill(); } }
-      const sx=1+0.28*b.squash; drawMarble(b.leapt?b.land:b.bin, b.x, b.y, g.ballR*sx, (1-0.28*b.squash));
+      if(b.trail.length){ const tc=CYAN.join(','); for(let i=0;i<b.trail.length;i++){ const tp=b.trail[i], a=(i/b.trail.length)*0.5; ctx.fillStyle='rgba('+tc+','+a+')'; ctx.beginPath(); ctx.arc(tp.x,tp.y,g.ballR*0.55*(i/b.trail.length+0.35),0,6.2832); ctx.fill(); } }
+      const sx=1+0.28*b.squash; drawMarble(ballColorSlot(b), b.x, b.y, g.ballR*sx, (1-0.28*b.squash));
     }
 
     // hopper
@@ -519,10 +583,10 @@
     ctx.beginPath(); ctx.moveTo(g.cx-hw,hy-hh); ctx.lineTo(g.cx+hw,hy-hh); ctx.lineTo(g.cx+g.ballR*1.5,hy); ctx.lineTo(g.cx-g.ballR*1.5,hy); ctx.closePath(); ctx.fill(); ctx.stroke();
 
     // guess marker
-    if(S.guessMode && single && guessBin!=null){ const gx=binX(board,guessBin), y=g.binTop-19; ctx.fillStyle='rgba(84,236,220,0.95)'; ctx.beginPath(); ctx.moveTo(gx-7,y-8); ctx.lineTo(gx+7,y-8); ctx.lineTo(gx,y+2); ctx.closePath(); ctx.fill(); }
+    if(S.guessMode && single && guessBin!=null){ const gx=binX(board,guessBin), y=g.binTop-19; ctx.fillStyle='rgba('+CYAN.join(',')+',0.95)'; ctx.beginPath(); ctx.moveTo(gx-7,y-8); ctx.lineTo(gx+7,y-8); ctx.lineTo(gx,y+2); ctx.closePath(); ctx.fill(); }
 
     // board label (side-by-side)
-    if(g.labelH){ ctx.save(); ctx.textAlign='center'; ctx.font=UIFONT; ctx.fillStyle=board.rigged?'rgba(255,178,76,0.95)':'rgba(84,236,220,0.95)';
+    if(g.labelH){ ctx.save(); ctx.textAlign='center'; ctx.font=UIFONT; ctx.fillStyle=board.rigged?'rgba('+AMBER.join(',')+',0.95)':'rgba('+CYAN.join(',')+',0.95)';
       ctx.fillText(board.label.toUpperCase(), g.cx, 18); ctx.restore(); }
   }
 
@@ -554,6 +618,11 @@
 
   toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers are how many <b>paths</b> reach each bin. Loads of ways to the middle; only <b>one</b> way to each edge.',''); });
   document.getElementById('sound').addEventListener('click',function(){ S.sound=!S.sound; this.setAttribute('aria-pressed',S.sound?'true':'false'); if(S.sound) ensureAudio(); });
+
+  // Colours picker — reveals the swatch strip.
+  document.getElementById('theme').addEventListener('click',function(){ const on=!document.getElementById('themebar').classList.contains('on');
+    this.setAttribute('aria-pressed',on?'true':'false'); document.getElementById('themebar').classList.toggle('on',on);
+    if(on) setInsight('Pick your colours! Same game, new outfit &mdash; the crowded middle stays calm, the rare edges still pop.',''); });
 
   // Lab (depth) toggle — reveals the fat-tails levers.
   document.getElementById('lab').addEventListener('click',function(){ S.depth = S.depth==='lab'?'explore':'lab'; const on=S.depth==='lab';
@@ -590,6 +659,8 @@
     guessBin=b; awaitingGuess=true; setInsight('You picked bin <code>'+b+'</code>. Dropping one ball&hellip;',''); spawnBall(primary,{guessEval:true}); });
 
   window.addEventListener('resize',()=>{ measure(); layoutAll(); });
+  buildSwatches();
+  applyTheme((()=>{ try{ return localStorage.getItem('plink_theme')||DEFAULT_THEME; }catch(e){ return DEFAULT_THEME; } })());
   measure(); buildBoards(); requestAnimationFrame(frame);
 
   // === ARCHITECTURE (Lever 4, side-by-side) ===

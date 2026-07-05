@@ -59,11 +59,30 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
 
 - The histogram is a `Map`, not an array, precisely so wild outliers never index out of range and
   domain changes never lose data. Don't "simplify" it back to a fixed array.
-- Sprites are keyed by slot and cached (`spriteCache`); colour depends on `S.rows`, so the cache is
-  cleared when Rows changes. Colour is by distance-from-centre only (board-independent) so both
-  boards share sprites.
+- Sprites are keyed by slot and cached (`spriteCache`); colour depends on `S.rows` AND the active
+  palette, so the cache is cleared when Rows changes or a theme is applied. Sprite colour is by
+  distance-from-centre only (board-independent) so both boards share sprites. An IN-FLIGHT ball is
+  drawn with `ballColorSlot(b)`, NOT its landing slot: while it walks the pegs it wears its CURRENT
+  column's colour (so a tail-bound marble is not blue until it earns it), revealing its true slot
+  only as it drops in / leaps / settles. `ballColorSlot` MUST round+clamp to an integer and read
+  `b.board.geo` (never a captured `g`/`primary`) so the cache stays integer-keyed and side-by-side
+  boards colour independently.
+- Motion (anti-"snake"): balls spawn scattered across the hopper mouth (`±dx*0.85`) with jittered
+  start height and per-BALL hop speed, and every segment's duration is jittered in `startSeg`, so a
+  poured crowd desyncs into a curtain instead of a single-file thread. `segTarget` adds a small
+  lateral wobble to peg glances; the final drop into the bin stays exact so landings are honest.
+- Palettes / theming: `PALETTES` (5 curated kid-friendly themes) + `applyTheme(key)`. Each theme
+  rewrites both colour languages — CSS custom props (UI chrome) and the JS marble `let`s
+  (`HONEY/AMBER/AMBERD` = calm common ramp, `CYANS/CYAN` = rare-edge pop) — then clears the sprite
+  cache. The `Colors` button reveals `#themebar` (swatch picker built by `buildSwatches`); choice
+  persists in `localStorage.plink_theme` (default `nebula`). Invariant every palette keeps: crowded
+  middle stays CALM, rare edge POPS. Effect colours (trail, celebrate, chevrons, guess, labels) read
+  the marble vars so they recolour with the theme. Don't hardcode `84,236,220` etc back in.
 - `preview_screenshot` caches an early pegs-only frame for this rAF canvas after a relayout. Verify
-  rendering with `getImageData` pixel probes, not screenshots.
+  rendering with `getImageData` pixel probes, not screenshots. NOTE: the preview tab is usually
+  `document.hidden`, so rAF is throttled to zero and the canvas never animates on its own — to
+  verify motion/settling, temporarily expose a manual stepper (`step(dt,k)` that runs the frame body
+  minus the rAF reschedule), drive it from `preview_eval`, probe `board.bins`, then remove the hook.
 
 ## Local dev + deploy
 
