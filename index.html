@@ -417,7 +417,7 @@
     const b={ id:++ballId, board, seq, bin, jump, land, r:0, i:0,
       tracked:!!o.tracked, guessEval:!!o.guessEval, glow:info.glow>0, leapt:(jump===0),
       x:g.cx+(Math.random()*2-1)*g.dx*0.85, y:g.apexY-g.dropH-Math.random()*g.dropH*0.5,
-      squash:0, path:[], trail:[], hop:0.72+Math.random()*0.6 };
+      squash:0, ox:0, oy:0, path:[], trail:[], hop:0.72+Math.random()*0.6 };
     startSeg(b,true); board.balls.push(b);
   }
   function easeInOut(t){ return t<.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
@@ -426,7 +426,7 @@
     b.x=s.ax+(s.bx-s.ax)*easeInOut(t);
     b.y=b.leaping? s.ay+(s.by-s.ay)*easeInOut(t) : s.ay+(s.by-s.ay)*(t*t);
     if(b.leaping && !reduce){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>14) b.trail.shift(); }
-    b.squash=Math.max(0,b.squash-dt*6);
+    b.squash=Math.max(0,b.squash-dt*6); b.ox*=0.82; b.oy*=0.82; // collision offset springs back to the path
     if(s.t>=1){ b.x=s.bx; b.y=s.by;
       if(b.r<S.rows){ onPeg(b); b.path.push(b.seq[b.r]?'R':'L'); b.i+=b.seq[b.r]; b.r+=1; b.squash=1; startSeg(b,false); }
       else if(!b.leapt){ b.leapt=true; startLeap(b); }
@@ -444,6 +444,30 @@
     if(board===primary && !S.compare && board.total>0 && board.total%60===0
        && board.momentum<=0 && board.wild<=0 && Math.abs(board.bias-0.5)<0.001)
       setInsight("See the hill? Tall in the middle, tiny at the edges &mdash; that shape is the bell curve.","");
+  }
+
+  // === COLLISION ===  Marbles are solid. After the eased move, a light separation pass pushes
+  // overlapping in-flight balls apart via a decaying position OFFSET (b.ox/b.oy) so a pour jostles
+  // like real marbles instead of ghosting through each other. It never changes which bin a ball
+  // counts in (settle() is time-based on b.land); it damps the vertical push so it can't fight the
+  // fall, and a spatial hash keeps it ~O(n). Leaping wild balls ride their own trajectory and skip it.
+  function separate(board){
+    const balls=board.balls, n=balls.length; if(n<2) return;
+    const g=board.geo, minD=g.ballR*1.9, cell=minD, cap=g.ballR*2.2;
+    const minX=g.x0+g.ballR, maxX=g.x0+g.w-g.ballR, grid=new Map();
+    for(let i=0;i<n;i++){ const b=balls[i]; if(b.dead||b.leaping) continue;
+      const k=Math.floor((b.x+b.ox)/cell)+','+Math.floor((b.y+b.oy)/cell); let a=grid.get(k); if(!a){ a=[]; grid.set(k,a); } a.push(i); }
+    for(let i=0;i<n;i++){ const a=balls[i]; if(a.dead||a.leaping) continue;
+      const cx=Math.floor((a.x+a.ox)/cell), cy=Math.floor((a.y+a.oy)/cell);
+      for(let gx=-1;gx<=1;gx++) for(let gy=-1;gy<=1;gy++){ const arr=grid.get((cx+gx)+','+(cy+gy)); if(!arr) continue;
+        for(const j of arr){ if(j<=i) continue; const b=balls[j]; if(b.dead||b.leaping) continue;
+          let dx=(b.x+b.ox)-(a.x+a.ox), dy=(b.y+b.oy)-(a.y+a.oy), d2=dx*dx+dy*dy;
+          if(d2<minD*minD){ let d=Math.sqrt(d2); if(d<0.01){ dx=(i&1)?0.1:-0.1; dy=0; d=0.1; }
+            const push=(minD-d)/2, nx=dx/d*push, ny=dy/d*push*0.22;
+            a.ox-=nx; a.oy-=ny; b.ox+=nx; b.oy+=ny; } } } }
+    for(let i=0;i<n;i++){ const a=balls[i]; if(a.dead||a.leaping) continue;
+      if(a.ox<-cap)a.ox=-cap; else if(a.ox>cap)a.ox=cap; if(a.oy<-cap)a.oy=-cap; else if(a.oy>cap)a.oy=cap;
+      const rx=a.x+a.ox; if(rx<minX)a.ox+=minX-rx; else if(rx>maxX)a.ox-=rx-maxX; }
   }
 
   /* ---------------- effects ---------------- */
@@ -574,7 +598,7 @@
     for(const p of board.parts){ const k=Math.max(0,p.life/p.max); ctx.fillStyle='rgba('+p.rgb+','+k+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r*k+0.3,0,6.2832); ctx.fill(); }
     for(const b of board.balls){
       if(b.trail.length){ const tc=CYAN.join(','); for(let i=0;i<b.trail.length;i++){ const tp=b.trail[i], a=(i/b.trail.length)*0.5; ctx.fillStyle='rgba('+tc+','+a+')'; ctx.beginPath(); ctx.arc(tp.x,tp.y,g.ballR*0.55*(i/b.trail.length+0.35),0,6.2832); ctx.fill(); } }
-      const sx=1+0.28*b.squash; drawMarble(ballColorSlot(b), b.x, b.y, g.ballR*sx, (1-0.28*b.squash));
+      const sx=1+0.28*b.squash; drawMarble(ballColorSlot(b), b.x+b.ox, b.y+b.oy, g.ballR*sx, (1-0.28*b.squash));
     }
 
     // hopper
@@ -596,6 +620,7 @@
     for(const board of boards){
       pump(board,dt);
       for(const b of board.balls) if(!b.dead) updateBall(b,dt);
+      separate(board);
       if(board.balls.some(b=>b.dead)) board.balls=board.balls.filter(b=>!b.dead);
       for(const f of board.flashes) f.life-=dt; if(board.flashes.length) board.flashes=board.flashes.filter(f=>f.life>0);
       for(const p of board.parts){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=360*dt; } if(board.parts.length) board.parts=board.parts.filter(p=>p.life>0);

@@ -71,6 +71,13 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
   start height and per-BALL hop speed, and every segment's duration is jittered in `startSeg`, so a
   poured crowd desyncs into a curtain instead of a single-file thread. `segTarget` adds a small
   lateral wobble to peg glances; the final drop into the bin stays exact so landings are honest.
+- Collision (`=== COLLISION ===`, `separate()` called in the frame loop): marbles are solid. A
+  spatial-hash separation pass pushes overlapping in-flight balls apart via a decaying RENDER offset
+  (`b.ox/b.oy`, sprung back each frame in `updateBall`), so a pour jostles like real marbles instead
+  of ghosting through each other. It moves the render position ONLY; `settle()` stays time-based on
+  `b.land`, so counts/stats are untouched (a fair pour still makes a clean bell). Vertical push is
+  damped so it can't fight the fall; leaping wild balls skip it; offsets are capped and clamped to
+  the board region so nothing bleeds across the side-by-side divider. ~0.7ms/frame at 250 balls.
 - Palettes / theming: `PALETTES` (5 curated kid-friendly themes) + `applyTheme(key)`. Each theme
   rewrites both colour languages — CSS custom props (UI chrome) and the JS marble `let`s
   (`HONEY/AMBER/AMBERD` = calm common ramp, `CYANS/CYAN` = rare-edge pop) — then clears the sprite
