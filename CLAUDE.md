@@ -16,7 +16,12 @@ Mediocristan/Extremistan), **Taleb** (fat tails as a worldview). See README, whi
 ## Hard constraints (do not violate)
 
 - **One file.** Dependency-free vanilla JS + Canvas, single `index.html`. If you ever must bundle,
-  use a tiny esbuild step that still emits a single `index.html`.
+  use a tiny esbuild step that still emits a single `index.html`. The ONE allowed exception is the
+  PWA sidecar (static assets, no code): `manifest.webmanifest`, `icon.svg` (the cyan fat-tailed
+  curve — vector source of truth), `icon-192.png` / `icon-512.png` (any + maskable), and
+  `apple-touch-icon.png` (180, iOS home screen). Regenerate PNGs from `icon.svg` with
+  `qlmanage -t -s 1024 -o <dir> icon.svg` then `sips -z <n> <n>`. Head wires favicon (SVG + PNG
+  fallback), apple-touch-icon, manifest, and `theme-color`. App CODE stays single-file.
 - **Preserve the glass-marble sprite renderer** (`makeMarble` / `sprite` / `drawMarble`,
   pre-rendered and blitted).
 - **Preserve the layered-depth UX**: kids get the simple toy; the Lab row (`#labrow`) is hidden
