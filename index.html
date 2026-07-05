@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Plink</title>
 <meta name="description" content="An interactive Galton board that teaches probability and fat tails.">
-<meta name="theme-color" content="#0A0620">
+<meta name="theme-color" content="#000000">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,39 +16,74 @@
 <meta name="mobile-web-app-capable" content="yes">
 <style>
   :root{
-    --bg-top:#0c1a26; --bg-mid:#0a141d; --bg-bot:#060c12; --bg-glow:#163243;
-    --ink:#F5EEE0; --ink-dim:rgba(245,238,224,.60); --ink-faint:rgba(245,238,224,.32);
-    --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.11);
-    --line:rgba(245,238,224,.13);
-    --amber:#FFB24C; --amber-deep:#F2743C; --honey:#FFD27A;
-    --cyan:#54ECDC; --cyan-deep:#1fb7a6;
+    /* Fixed palette: black stage, cyan ion highlight, white ink, neon-orange where it earns it. */
+    --bg-top:#0b0d12; --bg-mid:#06080c; --bg-bot:#000000; --bg-glow:#0b2b33;
+    --ink:#FFFFFF; --ink-dim:rgba(255,255,255,.62); --ink-faint:rgba(255,255,255,.34);
+    --surface:rgba(255,255,255,.045); --surface-2:rgba(255,255,255,.10);
+    --line:rgba(255,255,255,.14);
+    --amber:#FF7A1A; --amber-deep:#E85D00; --honey:#FFB166;
+    --cyan:#3DF0DE; --cyan-deep:#12B9AC;
     --font: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Nunito", "Quicksand", system-ui, -apple-system, sans-serif;
     --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
     --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
+    /* one spacing/shape/motion vocabulary for the whole control chrome (Astra "instrument" restraint) */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+    --r-ctl:12px; --r-card:16px;
+    --rail-w:clamp(248px,24vw,340px);
+    --ease-settle:cubic-bezier(.16,1,.3,1);
+    --shadow-card:0 16px 40px -24px rgba(0,10,26,.9), inset 0 1px 0 rgba(255,255,255,.05);
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ height:100%; margin:0; }
+  html,body{ height:100%; margin:0; width:100%; max-width:100%; overflow:hidden; overscroll-behavior:none; }
   body{
+    min-height:100svh;
     font-family:var(--font); color:var(--ink);
     background:
       radial-gradient(140% 100% at 50% -20%, var(--bg-glow) 0%, transparent 52%),
       linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
-    overflow:hidden; -webkit-font-smoothing:antialiased;
+    -webkit-font-smoothing:antialiased; touch-action:manipulation;
   }
-  .app{ height:100%; display:flex; flex-direction:column; gap:11px; padding:16px clamp(10px,3vw,30px) 13px; }
+  /* SHELL: a CSS grid, not a flex column, so the board CLAIMS its space up front instead of
+     getting whatever the wrapping controls leave over (the old "board is 1/3 the screen" bug).
+     Portrait: header / board / insight / dock stack. Landscape (below): board + side-rail dock. */
+  .app{
+    height:100%; height:100svh;                  /* modern: svh = the always-visible height. Fallback: 100% (via html,body height:100%) never overshoots the small viewport the way 100vh would with overflow:hidden */
+    display:grid; gap:11px;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(clamp(10px,3vw,30px), env(safe-area-inset-right))
+      max(13px, env(safe-area-inset-bottom))
+      max(clamp(10px,3vw,30px), env(safe-area-inset-left));
+    grid-template-columns:minmax(0,1fr);         /* min 0 so a wide child can never blow the column past the viewport */
+    grid-template-rows:auto minmax(0,1fr) auto auto;
+    grid-template-areas:"head" "board" "insight" "dock";
+  }
+  .topbar{ grid-area:head; }
+  .cabinet{ grid-area:board; }
+  .insight{ grid-area:insight; }
+  /* DOCK wraps all three control blocks. Portrait = a capped, internally-scrolling bottom shelf,
+     so revealing Lab/Colors scrolls the dock instead of stealing height from the board. */
+  .dock{ grid-area:dock; display:flex; flex-direction:column; gap:var(--sp-3); min-height:0; min-width:0;
+    max-height:250px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+    padding:var(--sp-3); background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--r-card); box-shadow:var(--shadow-card); }
+  #dockcount{ display:none; text-align:left; }   /* mirrored counter, shown only in the landscape rail */
+  #dockcount .num{ font-family:var(--mono); font-size:22px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
+  #dockcount .lab{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin-top:4px; }
 
-  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex:0 0 auto; }
+  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex:0 0 auto; min-width:0; }
   .title-wrap{ min-width:0; }
   .eyebrow{ font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--cyan); font-weight:700; margin:0 0 4px; }
   h1{ font-size:clamp(23px,4.6vw,42px); line-height:.96; margin:0; font-weight:800; letter-spacing:-.022em; }
   .plaque{ font-family:var(--serif); font-style:italic; font-size:13px; letter-spacing:.02em; color:var(--ink-faint); margin:5px 0 0; }
+  .railfoot{ display:none; margin:0; }            /* quiet editorial footer, revealed only in the landscape rail */
   .legend{ margin:8px 0 0; font-size:12.5px; color:var(--ink-dim); font-weight:600; }
   .legend b{ font-weight:800; } .legend .w{ color:var(--honey); } .legend .a{ color:var(--cyan); }
-  .counter{ text-align:right; flex:0 0 auto; }
+  .counter{ text-align:right; flex:0 0 auto; min-width:0; }
   .counter .num{ font-family:var(--mono); font-size:clamp(23px,4vw,36px); font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
   .counter .lab{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin-top:5px; }
 
-  .cabinet{ position:relative; flex:1 1 auto; min-height:0; border-radius:22px;
+  .cabinet{ position:relative; min-height:0; min-width:0; border-radius:22px;
     background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.22));
     box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 80px rgba(0,0,0,.5), 0 30px 70px -34px rgba(0,0,0,.85);
     border:1px solid var(--line); overflow:hidden;
@@ -59,8 +94,8 @@
     font-weight:600; pointer-events:none; background:rgba(8,14,20,.55); border:1px solid var(--line);
     padding:6px 13px; border-radius:999px; backdrop-filter:blur(5px); transition:opacity .5s; }
 
-  .insight{ flex:0 0 auto; min-height:48px; display:flex; align-items:center; gap:11px; padding:11px 17px; border-radius:15px;
-    background:var(--surface); border:1px solid var(--line); font-size:clamp(13px,2.4vw,15.5px); font-weight:600; line-height:1.36; }
+  .insight{ flex:0 0 auto; min-height:48px; min-width:0; display:flex; align-items:center; gap:11px; padding:12px 17px; border-radius:var(--r-card);
+    background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-card); font-size:clamp(13px,2.4vw,15.5px); font-weight:600; line-height:1.36; }
   .insight .dot{ flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 12px var(--amber); }
   .insight.win .dot{ background:var(--cyan); box-shadow:0 0 12px var(--cyan); }
   .insight.miss .dot{ background:var(--honey); box-shadow:0 0 12px var(--honey); }
@@ -70,8 +105,8 @@
   .group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .spacer{ flex:1 1 auto; }
   button{ font-family:var(--font); font-size:14.5px; font-weight:700; color:var(--ink); background:var(--surface);
-    border:1px solid var(--line); border-radius:12px; padding:11px 15px; min-height:44px; cursor:pointer;
-    display:inline-flex; align-items:center; gap:7px; transition:transform .08s, background .15s, border-color .15s, box-shadow .15s; }
+    border:1px solid var(--line); border-radius:var(--r-ctl); padding:11px 15px; min-height:44px; min-width:0; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:7px; transition:transform .12s var(--ease-settle), background .18s var(--ease-settle), border-color .18s, box-shadow .18s; }
   button:hover{ background:var(--surface-2); }
   button:active{ transform:translateY(1px) scale(.98); }
   button:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
@@ -85,39 +120,81 @@
   button .live{ width:8px; height:8px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px var(--amber); animation:blink 1s ease-in-out infinite; }
   @keyframes blink{ 50%{ opacity:.25; } }
 
-  .slider{ display:flex; align-items:center; gap:9px; padding:7px 13px; background:var(--surface); border:1px solid var(--line); border-radius:12px; min-height:44px; }
+  /* segmented pair (Options | Lab): one joined control, hairline divider, outer corners only */
+  .seg{ display:grid; grid-template-columns:1fr 1fr; }
+  .seg button{ border-radius:0; }
+  .seg button:first-child{ border-radius:var(--r-ctl) 0 0 var(--r-ctl); border-right:0; }
+  .seg button:last-child{ border-radius:0 var(--r-ctl) var(--r-ctl) 0; }
+
+  /* sliders are "meter rows": label / filled track / value — Astra's milled instrument read */
+  .slider{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:var(--sp-2); padding:7px 13px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-ctl); min-height:44px; min-width:0; }
   .slider label{ font-size:12px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
   .slider output{ font-family:var(--mono); font-size:13px; font-weight:600; min-width:2.6em; text-align:right; font-variant-numeric:tabular-nums; }
-  input[type=range]{ -webkit-appearance:none; appearance:none; width:88px; height:4px; border-radius:99px; background:rgba(245,238,224,.22); outline:none; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; min-width:0; height:5px; border-radius:99px; background:rgba(245,238,224,.20); box-shadow:inset 0 1px 2px rgba(0,0,0,.5); outline:none; touch-action:none; }
   input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; box-shadow:0 2px 6px rgba(0,0,0,.45); }
   input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; }
   input[type=range]:focus-visible{ outline:2px solid var(--cyan); outline-offset:4px; }
   input[type=range].wild::-webkit-slider-thumb{ background:var(--cyan); }
   input[type=range].wild::-moz-range-thumb{ background:var(--cyan); }
 
-  /* colours row — a swatch picker revealed by the Colors button */
-  .themebar{ padding-top:2px; } .themebar:not(.on){ display:none; }
-  .swatch{ position:relative; width:58px; height:36px; padding:0; border-radius:11px; border:1px solid var(--line); overflow:hidden; flex:0 0 auto; }
-  .swatch .pop{ position:absolute; right:5px; bottom:5px; width:10px; height:10px; border-radius:50%; box-shadow:0 0 8px currentColor, 0 0 2px currentColor; }
-  .swatch .nm{ position:absolute; left:6px; top:4px; right:4px; font-size:8.5px; font-weight:800; letter-spacing:.01em; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.7); text-align:left; line-height:1; }
-  .swatch[aria-pressed="true"]{ border-color:transparent; box-shadow:0 0 0 2px var(--ink), 0 6px 16px -6px #000; }
-  .swatch:hover{ transform:translateY(-1px); }
-
-  /* lab (depth) row — hidden until Lab mode is on */
-  .labrow:not(.on){ display:none; }
-  .stat{ display:flex; align-items:center; gap:7px; padding:9px 14px; background:var(--surface); border:1px solid var(--line);
-    border-radius:12px; min-height:44px; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
+  /* collapsible panels — hidden until their toggle adds .on (keeps the default bottom bar lean) */
+  .dock .optsrow:not(.on){ display:none; }        /* .dock-scoped so it out-specifies the grid rule when collapsed */
+  .dock .labrow:not(.on){ display:none; }
+  .stat{ display:flex; align-items:center; justify-content:space-between; gap:7px; padding:9px 14px; background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--r-ctl); min-height:44px; min-width:0; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
   .stat b{ font-family:var(--mono); font-weight:600; color:var(--honey); font-variant-numeric:tabular-nums; }
   .stat.hot{ border-color:color-mix(in srgb, var(--cyan) 50%, transparent); } .stat.hot b{ color:var(--cyan); }
   .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; font-style:italic; font-family:var(--serif); }
 
+  /* PHONE cosmetics only — the symmetric portrait GRID lives in @media(orientation:portrait) below. */
   @media (max-width:560px){
-    .app{ gap:9px; padding:12px 10px 11px; }
+    .app{ gap:9px; }                              /* padding stays from .app so the safe-area max() wins */
     .legend,.plaque{ display:none; }
-    button{ padding:10px 12px; font-size:13.5px; }
-    .group.toggles{ order:5; }
+    .dock button{ font-size:13.5px; padding:10px 12px; }
     .stat.note{ display:none; }
     #sigmastat{ display:none; }
+  }
+
+  /* PORTRAIT: the dock is a symmetric control card. Every cluster is a fixed 3-column grid, so rows
+     are even BY CONSTRUCTION — no flex-wrap raggedness, no lonely trailing button. */
+  @media (orientation:portrait){
+    .dock .controls{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-2); align-content:start; }
+    .dock .group{ display:contents; }             /* flatten groups INTO the grid (the valid use of display:contents) */
+    .dock .spacer{ display:none; }
+    .dock #drop1{ grid-column:1 / -1; }           /* primary hero spans the row */
+    .dock .controls .seg{ grid-column:2 / -1; }    /* Reset takes col 1; Options|Lab fill cols 2-3 — full row */
+    .dock .slider{ grid-column:1 / -1; }          /* sliders are full-width meter rows */
+    .dock .stat{ grid-column:1 / -1; }            /* readouts are full-width rows */
+    #dockcount{ display:none; }
+  }
+
+  /* LANDSCAPE ("tetris" split): board + a full-height control-card rail. Each cluster is a 2-column
+     grid of equal, centre-labelled cells — no full-width lonely-word buttons, no blank half-pills.
+     Declared AFTER portrait and .dock-scoped so it also wins on a narrow landscape phone. */
+  @media (orientation:landscape){
+    .app{
+      gap:12px;
+      grid-template-columns:minmax(0,900px) var(--rail-w);
+      grid-template-rows:auto minmax(0,1fr);
+      grid-template-areas:
+        "insight dock"
+        "board   dock";
+      justify-content:center;
+    }
+    .topbar{ display:none; }                        /* reclaim the height; count mirrors into the rail header */
+    .insight{ min-height:0; }
+    .dock{ max-height:none; height:100%; gap:var(--sp-3); }
+    .dock .controls{ display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-2); align-content:start; }
+    .dock .group{ display:contents; }
+    .dock .spacer{ display:none; }
+    .dock #drop1{ grid-column:1 / -1; min-height:52px; }
+    .dock .seg{ grid-column:1 / -1; }
+    .dock .slider{ grid-column:1 / -1; }
+    .dock .stat{ grid-column:1 / -1; }
+    .dock #sound, .dock #resetrules{ grid-column:1 / -1; }   /* keep the odd trailing toggle from orphaning */
+    #dockcount{ display:block; padding:0 2px var(--sp-3); margin-bottom:var(--sp-1); border-bottom:1px solid var(--line); }
+    .railfoot{ display:block; margin-top:auto; padding-top:var(--sp-3); border-top:1px solid var(--line);
+      font-family:var(--serif); font-style:italic; font-size:12px; color:var(--ink-faint); text-align:center; }
   }
   @media (prefers-reduced-motion: reduce){
     .cabinet{ animation:none; opacity:1; transform:none; }
@@ -148,30 +225,35 @@
     <span id="insight-text">Drop a ball. You can't guess where one lands &mdash; but drop a thousand and they always make the same hill.</span>
   </div>
 
+  <div class="dock" id="dock">
+    <div class="counter" id="dockcount"><div class="num" id="dockcountnum">0</div><div class="lab" id="dockcountlab">balls dropped</div></div>
   <div class="controls">
     <div class="group">
       <button class="primary pulse" id="drop1">Drop 1</button>
       <button id="drop100">Drop 100</button>
       <button class="rain" id="rain" aria-pressed="false"><span id="rainface">Rain</span></button>
-      <button id="guess" aria-pressed="false">&#127919; Guess</button>
+      <button id="guess" aria-pressed="false">Guess</button>
       <button id="reset">Reset</button>
     </div>
     <div class="spacer"></div>
+    <div class="seg">
+      <button id="opts" aria-pressed="false">Options</button>
+      <button id="lab" aria-pressed="false">Lab</button>
+    </div>
+  </div>
+
+  <!-- Options layer: revealed by the Options button. Rows / speed / view toggles. -->
+  <div class="controls optsrow" id="optsrow">
     <div class="group">
       <div class="slider"><label for="rows">Rows</label><input type="range" id="rows" min="6" max="15" step="1" value="12"><output id="rowsOut">12</output></div>
       <div class="slider"><label for="speed">Speed</label><input type="range" id="speed" min="1" max="5" step="1" value="2"><output id="speedOut">2</output></div>
     </div>
-    <div class="group toggles">
+    <div class="group">
       <button id="bell" aria-pressed="true">Bell curve</button>
       <button id="paths" aria-pressed="false">Show paths</button>
       <button id="sound" aria-pressed="false">Sound</button>
-      <button id="theme" aria-pressed="false">&#127752; Colors</button>
-      <button id="lab" aria-pressed="false">&#129514; Lab</button>
     </div>
   </div>
-
-  <!-- Colours layer: revealed by the Colors button. Kid-facing palette picker. -->
-  <div class="controls themebar" id="themebar"><div class="group" id="swatches"></div></div>
 
   <!-- Depth layer: revealed by Lab mode. Home of the fat-tails levers. -->
   <div class="controls labrow" id="labrow">
@@ -189,6 +271,8 @@
     </div>
     <div class="spacer"></div>
     <div class="stat note">Fair machine &rarr; bell. Rig it &rarr; tails.</div>
+  </div>
+  <p class="railfoot">Galton&rsquo;s quincunx &middot; 1877</p>
   </div>
 </div>
 
@@ -240,7 +324,7 @@
 
   /* ---------------- colour ---------------- */
   function hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
-  let HONEY=hx('FFCB6B'), AMBER=hx('FF9A52'), AMBERD=hx('F2743C'), CYAN=hx('54ECDC'), CYANS=hx('9BF1E6');
+  let HONEY=hx('FFB166'), AMBER=hx('FF7A1A'), AMBERD=hx('EA5A08'), CYAN=hx('3DF0DE'), CYANS=hx('86F5EA');
   function mix(a,b,t){ t=Math.max(0,Math.min(1,t)); return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)]; }
   // Colour by rarity only (distance from the peg centre), so sprites are shared across boards.
   // Slots beyond the peg spread can only be reached by a wild jump — they glow cyan, brighter the farther out.
@@ -253,42 +337,10 @@
     return {rgb: t<0.5? mix(HONEY,AMBER,t*2) : mix(AMBER,AMBERD,(t-0.5)*2), glow:0};
   }
 
-  /* ---------------- palettes / theming ---------------- */
-  // Each palette speaks both colour languages: CSS custom props (UI chrome) and the JS marble vars
-  // (HONEY/AMBER/AMBERD = the calm common ramp, CYANS/CYAN = the rare-edge pop). Swapping a theme
-  // rewrites both and clears the sprite cache so marbles re-render in the new colours. The invariant
-  // every palette keeps: the crowded middle stays calm, the rare edge pops.
-  const PALETTES=[
-    { key:'twilight', name:'Twilight', bg:['#0c1a26','#0a141d','#060c12'], ink:'#F5EEE0', mid:['#FFCB6B','#FF9A52','#F2743C'], rare:['#9BF1E6','#54ECDC'], action:'#FFB24C' },
-    { key:'nebula',   name:'Nebula',   bg:['#1C1440','#120C2E','#0A0620'], ink:'#F3EEFF', mid:['#F7C9C0','#EBA7A8','#C97E92'], rare:['#4DE3F0','#B6FBFF'], action:'#B15CFF' },
-    { key:'reef',     name:'Reef',     bg:['#0A4257','#083344','#04212E'], ink:'#F4EBDD', mid:['#FFC98A','#F5A268','#D8794A'], rare:['#22D3C4','#5CFCE8'], action:'#FF6B4A' },
-    { key:'lava',     name:'Lava',     bg:['#2B0F14','#3D1417','#1A080C'], ink:'#FFE9D6', mid:['#FFB37A','#FF7A3C','#E24518'], rare:['#38D0FF','#7DF5FF'], action:'#FF4D80' },
-    { key:'candy',    name:'Candy',    bg:['#2A0E22','#3A1330','#24122E'], ink:'#FFEAF4', mid:['#FFC4D6','#F58FB6','#D96BA6'], rare:['#5FF0D0','#39FFE6'], action:'#FF4FA3' },
-  ];
-  const DEFAULT_THEME='nebula';
-  function scale(hex,f){ return '#'+hx(hex).map(v=>Math.max(0,Math.min(255,Math.round(v*f))).toString(16).padStart(2,'0')).join(''); }
-  function lift(hex,f){ return '#'+hx(hex).map(v=>Math.round(v+(255-v)*f).toString(16).padStart(2,'0')).join(''); }
-  function rgbaOf(hex,a){ const p=hx(hex); return 'rgba('+p[0]+','+p[1]+','+p[2]+','+a+')'; }
-  function applyTheme(key){
-    const pal=PALETTES.find(p=>p.key===key)||PALETTES[0];
-    const rs=document.documentElement.style;
-    rs.setProperty('--bg-top',pal.bg[0]); rs.setProperty('--bg-mid',pal.bg[1]); rs.setProperty('--bg-bot',pal.bg[2]);
-    rs.setProperty('--bg-glow',lift(pal.bg[0],0.12));
-    rs.setProperty('--ink',pal.ink);
-    rs.setProperty('--ink-dim',rgbaOf(pal.ink,0.60)); rs.setProperty('--ink-faint',rgbaOf(pal.ink,0.32)); rs.setProperty('--line',rgbaOf(pal.ink,0.13));
-    rs.setProperty('--honey',pal.mid[0]); rs.setProperty('--amber',pal.action); rs.setProperty('--amber-deep',scale(pal.action,0.82));
-    rs.setProperty('--cyan',pal.rare[1]); rs.setProperty('--cyan-deep',pal.rare[0]);
-    HONEY=hx(pal.mid[0]); AMBER=hx(pal.mid[1]); AMBERD=hx(pal.mid[2]); CYANS=hx(pal.rare[0]); CYAN=hx(pal.rare[1]);
-    spriteCache={};
-    const sw=document.getElementById('swatches'); if(sw) for(const el of sw.children) el.setAttribute('aria-pressed', el.dataset.key===pal.key?'true':'false');
-    try{ localStorage.setItem('plink_theme',pal.key); }catch(e){}
-  }
-  function buildSwatches(){ const sw=document.getElementById('swatches'); if(!sw) return; sw.innerHTML='';
-    for(const pal of PALETTES){ const b=document.createElement('button'); b.className='swatch'; b.dataset.key=pal.key; b.title=pal.name; b.setAttribute('aria-label','Colours: '+pal.name);
-      b.style.background='linear-gradient(135deg,'+pal.mid[0]+' 0%,'+pal.mid[1]+' 52%,'+pal.mid[2]+' 100%)';
-      b.innerHTML='<span class="nm">'+pal.name+'</span><span class="pop" style="background:'+pal.rare[1]+';color:'+pal.rare[1]+'"></span>';
-      b.addEventListener('click',()=>applyTheme(pal.key)); sw.appendChild(b); }
-  }
+  /* ---------------- palette ---------------- */
+  // Fixed palette (no theme picker): the marble colour vars above ARE the palette. HONEY/AMBER/AMBERD
+  // is the calm neon-orange common ramp; CYANS/CYAN is the cyan-ion rare-edge pop. The :root custom
+  // props carry the same language to the UI chrome. Invariant: crowded middle stays calm, rare edge pops.
 
   /* ---------------- marble sprite (pre-rendered, blitted) ---------------- */
   function makeMarble(rgb, glow){
@@ -337,7 +389,7 @@
   function clampSlot(s){ return Math.max(domLo(),Math.min(domHi(),s)); }
 
   function measure(){
-    const rc=cvs.parentElement.getBoundingClientRect(); const w=Math.max(280,rc.width), h=Math.max(300,rc.height);
+    const rc=cvs.parentElement.getBoundingClientRect(); const w=Math.max(240,rc.width), h=Math.max(240,rc.height);
     cvs.width=Math.round(w*DPR); cvs.height=Math.round(h*DPR); cvs.style.width=w+'px'; cvs.style.height=h+'px';
     ctx.setTransform(DPR,0,0,DPR,0,0); geoRoot={w,h,gap:0};
   }
@@ -349,7 +401,7 @@
     const regionW=(w-gap*(n-1))/n;
     const half=(S.rows/2)+domainPad();
     const side=Math.max(14, regionW*0.05);
-    const dx=Math.min((regionW/2 - side)/Math.max(0.5,half), 50);
+    const dx=Math.min((regionW/2 - side)/Math.max(0.5,half), 60);
     for(let k=0;k<boards.length;k++) layoutBoard(boards[k], k*(regionW+gap), regionW, h, dx);
   }
   function layoutBoard(b,x0,w,h,dx){
@@ -366,8 +418,11 @@
 
   /* ---------------- lifecycle ---------------- */
   function updateCount(){
-    document.getElementById('count').textContent=(primary? primary.total:0).toLocaleString();
-    document.getElementById('countlab').textContent=S.compare?'balls each':'balls dropped';
+    const tot=(primary? primary.total:0).toLocaleString(), lab=S.compare?'balls each':'balls dropped';
+    document.getElementById('count').textContent=tot;
+    document.getElementById('countlab').textContent=lab;
+    const dn=document.getElementById('dockcountnum'); if(dn) dn.textContent=tot;      // mirror into the landscape rail
+    const dl=document.getElementById('dockcountlab'); if(dl) dl.textContent=lab;
     updateTailReadout(S.compare? boards[1] : primary);
   }
   // === TAIL METRIC (Task 4) ===  Old metric counted the four fixed edge bins, so pure bias piled
@@ -495,12 +550,12 @@
     if(b.jump!==0){ const mu=S.rows*b.board.bias, sd=Math.sqrt(Math.max(1e-6,S.rows*b.board.bias*(1-b.board.bias))), sig=Math.abs(b.land-mu)/sd;
       setInsight('Whoa &mdash; that ball skipped the pegs and <b>jumped</b> to slot <code>'+b.land+'</code>, about <b>'+sig.toFixed(1)+'&sigma;</b> out. A fixed-step machine could never reach there. <b>That</b> is a wild tail.','win');
       celebrate(b.board, binX(b.board,clampSlot(b.land)), b.board.geo.binBottom-24); chord(); return; }
-    if(b.land===0||b.land===S.rows){ setInsight('This ball went '+path+' to bin <code>'+b.land+'</code>. &#127775; A perfect '+(b.land===0?'left':'right')+' streak &mdash; about <b>1 in '+Math.pow(2,S.rows).toLocaleString()+'</b>. The edge means winning <b>every</b> bounce.','win'); celebrate(b.board,binX(b.board,b.land),b.board.geo.binBottom-24); chord(); }
+    if(b.land===0||b.land===S.rows){ setInsight('This ball went '+path+' to bin <code>'+b.land+'</code>. A perfect '+(b.land===0?'left':'right')+' streak &mdash; about <b>1 in '+Math.pow(2,S.rows).toLocaleString()+'</b>. The edge means winning <b>every</b> bounce.','win'); celebrate(b.board,binX(b.board,b.land),b.board.geo.binBottom-24); chord(); }
     else setInsight('This ball flipped '+path+' &rarr; bin <code>'+b.land+'</code>. One ball is pure chaos. Now pour a hundred and watch a hill appear.','');
   }
   function evalGuess(landing){
     awaitingGuess=false;
-    if(landing===guessBin){ setInsight('&#127881; You nailed it &mdash; bin <code>'+guessBin+'</code>! That bin had only about a <b>'+(pmf(S.rows,guessBin)*100).toFixed(1)+'%</b> chance. Tap again.','win'); celebrate(primary,binX(primary,clampSlot(guessBin)),primary.geo.binBottom-24); chord(); }
+    if(landing===guessBin){ setInsight('You nailed it &mdash; bin <code>'+guessBin+'</code>! That bin had only about a <b>'+(pmf(S.rows,guessBin)*100).toFixed(1)+'%</b> chance. Tap again.','win'); celebrate(primary,binX(primary,clampSlot(guessBin)),primary.geo.binBottom-24); chord(); }
     else setInsight('It landed in slot <code>'+landing+'</code>, not <code>'+guessBin+'</code>. A single ball is impossible to call &mdash; that’s the whole idea. Try again.','miss');
   }
   function biasMsg(){ if(Math.abs(S.bias-0.5)<0.001){ setInsight('Pegs fair again &mdash; a balanced coin.',''); return; }
@@ -654,10 +709,9 @@
   toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers are how many <b>paths</b> reach each bin. Loads of ways to the middle; only <b>one</b> way to each edge.',''); });
   document.getElementById('sound').addEventListener('click',function(){ S.sound=!S.sound; this.setAttribute('aria-pressed',S.sound?'true':'false'); if(S.sound) ensureAudio(); });
 
-  // Colours picker — reveals the swatch strip.
-  document.getElementById('theme').addEventListener('click',function(){ const on=!document.getElementById('themebar').classList.contains('on');
-    this.setAttribute('aria-pressed',on?'true':'false'); document.getElementById('themebar').classList.toggle('on',on);
-    if(on) setInsight('Pick your colours! Same game, new outfit &mdash; the crowded middle stays calm, the rare edges still pop.',''); });
+  // Options toggle — reveals the rows / speed / view-toggle panel so the default bottom bar stays lean.
+  document.getElementById('opts').addEventListener('click',function(){ const on=!document.getElementById('optsrow').classList.contains('on');
+    this.setAttribute('aria-pressed',on?'true':'false'); document.getElementById('optsrow').classList.toggle('on',on); });
 
   // Lab (depth) toggle — reveals the fat-tails levers.
   document.getElementById('lab').addEventListener('click',function(){ S.depth = S.depth==='lab'?'explore':'lab'; const on=S.depth==='lab';
@@ -693,9 +747,16 @@
     const rc=cvs.getBoundingClientRect(), x=e.clientX-rc.left, g=primary.geo; let b=Math.round((x-g.cx)/g.dx+g.n/2); b=Math.max(0,Math.min(S.rows,b));
     guessBin=b; awaitingGuess=true; setInsight('You picked bin <code>'+b+'</code>. Dropping one ball&hellip;',''); spawnBall(primary,{guessEval:true}); });
 
-  window.addEventListener('resize',()=>{ measure(); layoutAll(); });
-  buildSwatches();
-  applyTheme((()=>{ try{ return localStorage.getItem('plink_theme')||DEFAULT_THEME; }catch(e){ return DEFAULT_THEME; } })());
+  // Re-measure whenever the BOARD CONTAINER changes size, not only on window 'resize'. Toggling
+  // Lab/Colors, the portrait/landscape grid swap, and the dock reflow all resize .cabinet WITHOUT
+  // firing 'resize', which would otherwise leave the canvas rendering at the stale old size. Runs
+  // synchronously; safe from ResizeObserver feedback loops because measure() only resizes the canvas
+  // and .cabinet is a grid track whose size the canvas cannot change (overflow:hidden). Geometry-only
+  // (measure + layoutAll, never buildBoards) so the histograms survive a rotate/toggle.
+  function remeasure(){ measure(); layoutAll(); }
+  if('ResizeObserver' in window){ new ResizeObserver(remeasure).observe(cvs.parentElement); }
+  window.addEventListener('resize', remeasure);
+  window.addEventListener('orientationchange', remeasure);
   measure(); buildBoards(); requestAnimationFrame(frame);
 
   // === ARCHITECTURE (Lever 4, side-by-side) ===
