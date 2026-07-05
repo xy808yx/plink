@@ -64,8 +64,8 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
 
 - The histogram is a `Map`, not an array, precisely so wild outliers never index out of range and
   domain changes never lose data. Don't "simplify" it back to a fixed array.
-- Sprites are keyed by slot and cached (`spriteCache`); colour depends on `S.rows` AND the active
-  palette, so the cache is cleared when Rows changes or a theme is applied. Sprite colour is by
+- Sprites are keyed by slot and cached (`spriteCache`); colour depends on `S.rows` and the fixed
+  palette, so the cache is cleared when Rows changes. Sprite colour is by
   distance-from-centre only (board-independent) so both boards share sprites. An IN-FLIGHT ball is
   drawn with `ballColorSlot(b)`, NOT its landing slot: while it walks the pegs it wears its CURRENT
   column's colour (so a tail-bound marble is not blue until it earns it), revealing its true slot
@@ -83,13 +83,21 @@ toggle (`S.logScale`; linear packs marbles, log draws bars so shapes read straig
   `b.land`, so counts/stats are untouched (a fair pour still makes a clean bell). Vertical push is
   damped so it can't fight the fall; leaping wild balls skip it; offsets are capped and clamped to
   the board region so nothing bleeds across the side-by-side divider. ~0.7ms/frame at 250 balls.
-- Palettes / theming: `PALETTES` (5 curated kid-friendly themes) + `applyTheme(key)`. Each theme
-  rewrites both colour languages — CSS custom props (UI chrome) and the JS marble `let`s
-  (`HONEY/AMBER/AMBERD` = calm common ramp, `CYANS/CYAN` = rare-edge pop) — then clears the sprite
-  cache. The `Colors` button reveals `#themebar` (swatch picker built by `buildSwatches`); choice
-  persists in `localStorage.plink_theme` (default `nebula`). Invariant every palette keeps: crowded
-  middle stays CALM, rare edge POPS. Effect colours (trail, celebrate, chevrons, guess, labels) read
-  the marble vars so they recolour with the theme. Don't hardcode `84,236,220` etc back in.
+- Palette (FIXED, no picker): the marble `let`s `HONEY/AMBER/AMBERD` (calm common ramp) and
+  `CYANS/CYAN` (rare-edge pop) ARE the palette, mirrored into the `:root` CSS custom props that
+  colour the UI chrome. A single fixed palette replaced the old 5-theme `Colors`/`applyTheme`/
+  `#themebar` picker (dropped for a fixed-palette + no-emoji direction; shipped in the chrome
+  redesign commit). Invariant: crowded middle stays CALM, rare edge POPS. Effect colours (trail,
+  celebrate, chevrons, guess, labels) read the marble vars. Don't hardcode `84,236,220` etc back in,
+  and don't reintroduce a theme picker without asking.
+- Control chrome (redesigned): the dock is ONE token-driven control card in both orientations
+  (`--sp-*` / `--r-ctl` / `--r-card` / `--shadow-card` / `--rail-w` / `--ease-settle`). Clusters are
+  CSS grids — portrait `repeat(3,1fr)`, landscape a 2-col rail — with `.group{display:contents}`
+  flattening buttons into them; Drop 1 is a full-width hero, Options|Lab a `.seg` segmented pair,
+  sliders are meter rows (`grid` label / track / value), `.stat`s are readout rows, and `.railfoot`
+  pins an editorial plaque to the bottom of the landscape rail. `#dockcount` mirrors the counter into
+  the rail header. All controls keep >=44px targets + focus-visible outlines. Do NOT revert to
+  flex-wrap: it went ragged in portrait and full-width lonely-word pills in landscape.
 - `preview_screenshot` caches an early pegs-only frame for this rAF canvas after a relayout. Verify
   rendering with `getImageData` pixel probes, not screenshots. NOTE: the preview tab is usually
   `document.hidden`, so rAF is throttled to zero and the canvas never animates on its own — to
