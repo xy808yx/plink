@@ -21,12 +21,14 @@ Mediocristan/Extremistan), **Taleb** (fat tails as a worldview). See README, whi
 ## Hard constraints (do not violate)
 
 - **One file.** Dependency-free vanilla JS + Canvas, single `index.html`. If you ever must bundle,
-  use a tiny esbuild step that still emits a single `index.html`. The ONE allowed exception is the
-  PWA sidecar (static assets, no code): `manifest.webmanifest`, `icon.svg` (the cyan fat-tailed
-  curve — vector source of truth), `icon-192.png` / `icon-512.png` (any + maskable), and
-  `apple-touch-icon.png` (180, iOS home screen). Regenerate PNGs from `icon.svg` with
-  `qlmanage -t -s 1024 -o <dir> icon.svg` then `sips -z <n> <n>`. Head wires favicon (SVG + PNG
-  fallback), apple-touch-icon, manifest, and `theme-color`. App CODE stays single-file.
+  use a tiny esbuild step that still emits a single `index.html`. The allowed exceptions are static
+  sidecars (assets, no code): `manifest.webmanifest`, `icon.svg` (now the **aurora ribbon over the
+  Mokulua islets** — the fat-tailed curve reborn in the night world; vector source of truth),
+  `icon-192.png` / `icon-512.png` (any + maskable), `apple-touch-icon.png` (180, iOS home screen),
+  and the OPTIONAL **`theme.mp3`** background track (J supplies it; the app is silent and fully
+  functional without it). Regenerate PNGs from `icon.svg` with `qlmanage -t -s 1024 -o <dir>
+  icon.svg` then `sips -z <n> <n>`. Head wires favicon (SVG + PNG fallback), apple-touch-icon,
+  manifest, and `theme-color` (now `#0A1220` night). App CODE stays single-file.
 - **Preserve the glass-marble sprite renderer** (`makeMarble` / `sprite` / `drawMarble`,
   pre-rendered and blitted). Same pattern now also covers the aurora background (`makeAuroraBlobs`
   / `drawAurora`) and the peg glow (`pegSpriteFor`): pre-render once, blit every frame, never
@@ -56,6 +58,48 @@ The whole app is one IIFE in `index.html`. Grep for these markers:
   the slider value, the `--fill` paint, and `applyRig`/`buildBoards` in sync), the `CHAPTERS`
   array (copy + `setup`/`demo`/`tinkerSetup`/`begin`/`ready` per chapter), and the `learn`
   controller (`active/idx/phase/doneNow/completed/moved`).
+
+## The world (Lanikai rebuild — "Push A")
+
+The old black-stage/aurora-blob look was fully replaced (J: "still ugly as hell") with a zen,
+drawaurora.com-style day/night dreamscape of Lanikai, Hawaii. Spec:
+`~/.claude/plans/still-ugly-as-hell-dapper-comet.md`. Adapted from a 3-way scene-engine competition
+(Scene B won: mirror-reflected sea + aurora). Key seams:
+
+- **`Scene` IIFE** (grep `==================== SCENE`): a full-bleed fixed background canvas `#scene`
+  (`z-index:0`) painting a keyframe day/night sky, celestial arc (sun by day, moon by night), the
+  two **Mokulua islets** (Moku Nui larger-left, Moku Iki right) as haze-tinted silhouettes, palm
+  frame, and a **mirror-reflected sea** (samples `scv` each paint, flips it in banded, plus a
+  moonglitter path + night aurora-reflection columns). `KEYS[]` is the phase color table
+  (Night/Dawn/Sunrise/Day/Golden/Dusk/Night). Public API: `resize/frame/begin/easeTo/release/
+  setTime/addRipple`. Pre-render-once/blit pattern like the marble sprites; the reflection band loop
+  + shimmer are the only per-paint heavy work.
+- **The clock.** The app owns wall time. `Scene.frame(now,dt)` (called from the board's `frame()`)
+  advances `sceneT` by `dt/DAY_LEN` (DAY_LEN=360s) only when `running && started && !document.hidden`,
+  and **self-caps paint to ~30fps** (`lastPaint`) while the clock advances every call. `begin()` runs
+  on the veil tap (Play drifts; Learn waits for its chapter). **Learn borrows the sky**: `gotoChapter`
+  calls `Scene.easeTo(CHAPTER_SKY[idx], 4)` (shortest-direction ease, holds at the hour); `exitLearn`
+  calls `Scene.release()` to resume the free-running day. `reduce` freezes at a golden still; `S.lite`
+  (set by the board's ftAvg) drops the reflection/shimmer. **resize() clamps W/H to >=1** so a 0-size
+  viewport never builds a 0-dim sprite (drawImage throws on those — real bug caught in review).
+- **The board canvas is transparent now.** `draw()` paints ONLY pegs/marbles/histogram/bell; the
+  frosted-glass `.cabinet` (`backdrop-filter:blur`) + the Scene behind it are the backdrop. Old
+  aurora blobs / dust / vignette / body gradient are GONE. Marble rare-edge `CYAN`/`CYANS` `let`s
+  keep their names but were repointed to **aurora green** (`7FE8A9`/`C9F5DE`); warm middle ramp
+  (`HONEY`/`AMBER`/`AMBERD`) also warmed. The bell curve is now an **always-on faint ghost** (the
+  Bell toggle just brightens it via `gk`).
+- **Layering / pointer-events.** `.app{pointer-events:none}` with `.topbar/.cabinet/.insight/.dock/
+  .veil` re-enabled to `auto`, so taps in the grid gaps fall through to `#scene` → `Scene.addRipple`
+  (a quiet one-shot shimmer; `reduce` skips). The `.topbar` has a text-shadow so it stays legible on
+  a bright day sky (it sits on the scene with no glass).
+- **Veil + audio.** `#veil` (tap-to-begin, `z-index:50`, display serif title) unlocks audio and calls
+  `Scene.begin()` on first pointerdown/keydown, then fades out. **Audio engine** (grep `audio`): a
+  looping `theme.mp3` music BED (`fetch`+`decodeAudioData`, dual-source equal-power **crossfade loop**
+  via `scheduleMusicLoop`/`playMusicOnce` setTimeout chain) + retuned quiet synth `plink`/`thud`/
+  `chord` mixed on top (`sfxBus`). `S.music`/`S.sfx` replaced the old `S.sound`; music defaults ON,
+  persisted in `plink.progress.v1` `audio:{music,sfx}` (default ON when the field is absent). The old
+  synthesized sea pad (`startAmbient`) is GONE. Missing `theme.mp3` = graceful silence, plinks still
+  work. `#musicbtn` (interim, in the Options row) toggles via `setMusic`.
 
 ## The four levers (all in Lab mode)
 

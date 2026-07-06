@@ -10,6 +10,12 @@
 
 Plink is a single, self-contained HTML file: an interactive [Galton board](https://en.wikipedia.org/wiki/Galton_board) that teaches probability, and then quietly teaches the thing most probability lessons skip, **fat tails**.
 
+## A calm place to think
+
+Plink is set in a painted dreamscape of **Lanikai, Hawaii**: a night sky with an aurora over the Mokulua islets, a reflecting sea, and a day that passes on its own while you play, drifting through dawn, bright turquoise noon, a burning golden hour, and back to the aurora-lit night. The board floats on a pane of frosted glass over that world. A quiet tap-to-begin opens the app and (optionally) fades in a soft background track. In **Learn** mode the sky follows the story: each chapter eases the light to its own hour, so finishing the journey feels like watching one whole day pass, ending under the northern lights.
+
+The soundtrack is an optional sidecar. Drop a file named `theme.mp3` next to `index.html` and it loops seamlessly behind the marbles (with the pentatonic *plinks* tuned to sit on top). With no file present, the app is simply quiet.
+
 ## Learn mode: a story for kids
 
 Plink now opens with a **Learn | Play** switch. Play is the free sandbox described below. **Learn** walks a kid (about 7 to 10, reading alone) through six short chapters set in a little seaside town:

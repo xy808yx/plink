@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Plink</title>
 <meta name="description" content="An interactive Galton board that teaches probability and fat tails.">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0A1220">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,32 +16,57 @@
 <meta name="mobile-web-app-capable" content="yes">
 <style>
   :root{
-    /* Fixed palette: black stage, cyan ion highlight, white ink, neon-orange where it earns it. */
-    --bg-top:#0b0d12; --bg-mid:#06080c; --bg-bot:#000000; --bg-glow:#0b2b33;
-    --ink:#FFFFFF; --ink-dim:rgba(255,255,255,.62); --ink-faint:rgba(255,255,255,.34);
-    --surface:rgba(255,255,255,.045); --surface-2:rgba(255,255,255,.10);
-    --line:rgba(255,255,255,.14);
-    --amber:#FF7A1A; --amber-deep:#E85D00; --honey:#FFB166;
-    --cyan:#3DF0DE; --cyan-deep:#12B9AC;
+    /* Lanikai night stage: the full-bleed scene canvas paints the real background; these tokens carry
+       the UI chrome, which floats on frosted glass over it. Ink stays bright for legibility on glass.
+       Rare-edge pop shifts from teal-cyan toward AURORA GREEN so the far-out marble glow echoes the sky. */
+    --night:#0A1220;                                   /* flat fallback behind the scene canvas */
+    --ink:#F4F8FF; --ink-dim:rgba(244,248,255,.66); --ink-faint:rgba(244,248,255,.40);
+    --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.12);
+    --glass:rgba(13,24,40,.42);                        /* frosted board/card fill over the scene */
+    --line:rgba(180,210,240,.17);
+    /* marble semantics preserved: calm warm middle ramp, luminous aurora edge (mirrored to JS binInfo) */
+    --amber:#FFB86B; --amber-deep:#F0932B; --honey:#FFD9A3;
+    --aurora:#7FE8A9; --aurora-deep:#4FC98A; --peri:#8EA0E8;
     --font: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
+    --display: "Hoefler Text", "Iowan Old Style", "Palatino", Georgia, "Times New Roman", serif;  /* veil title + big moments only */
     /* one spacing/shape/motion vocabulary for the whole control chrome (Astra "instrument" restraint) */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
     --r-ctl:12px; --r-card:16px;
     --rail-w:clamp(248px,24vw,340px);
     --ease-settle:cubic-bezier(.16,1,.3,1);
-    --shadow-card:0 16px 40px -24px rgba(0,10,26,.9), inset 0 1px 0 rgba(255,255,255,.05);
+    --shadow-card:0 18px 48px -26px rgba(0,8,20,.92), inset 0 1px 0 rgba(255,255,255,.08);
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ height:100%; margin:0; width:100%; max-width:100%; overflow:hidden; overscroll-behavior:none; }
   body{
     min-height:100svh;
     font-family:var(--font); color:var(--ink);
-    background:
-      radial-gradient(140% 100% at 50% -20%, var(--bg-glow) 0%, transparent 52%),
-      linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
+    background:var(--night);                          /* flat fallback: the #scene canvas paints the world */
     -webkit-font-smoothing:antialiased; touch-action:manipulation;
   }
+  /* The world. A full-bleed fixed canvas behind everything, painted by the Scene engine (day/night
+     cycle). The .app grid floats over it; frosted cards let the scene glow through. */
+  #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; touch-action:none; background:var(--night); }
+  .app{ position:relative; z-index:1; }
+  /* Ripples fall through the transparent gaps of the grid to the scene; interactive cards opt back in. */
+  .app{ pointer-events:none; }
+  .topbar,.cabinet,.insight,.dock,.veil{ pointer-events:auto; }
+
+  /* Landing veil: a quiet tap-to-begin over the live scene. The tap unlocks audio and starts the day. */
+  .veil{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    text-align:center; cursor:pointer; background:radial-gradient(120% 90% at 50% 42%, rgba(10,18,32,.28), rgba(6,10,20,.62));
+    transition:opacity .9s ease; }
+  .veil.gone{ opacity:0; pointer-events:none; }
+  .veil-inner{ padding:0 24px; transform:translateY(-5vh); }
+  .veil-kicker{ font-size:12.5px; letter-spacing:.34em; text-transform:uppercase; color:var(--aurora);
+    font-weight:700; margin:0 0 16px; opacity:.92; }
+  .veil-title{ font-family:var(--display); font-weight:600; font-size:clamp(66px,17vw,150px); font-style:italic;
+    line-height:.9; margin:0; letter-spacing:.005em; color:var(--ink);
+    text-shadow:0 2px 44px rgba(127,232,169,.30), 0 1px 4px rgba(0,0,0,.45); }
+  .veil-cta{ margin:28px 0 0; font-size:14px; font-weight:600; letter-spacing:.05em; color:var(--ink-dim);
+    animation:breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ opacity:.42; } 50%{ opacity:1; } }
   /* SHELL: a CSS grid, not a flex column, so the board CLAIMS its space up front instead of
      getting whatever the wrapping controls leave over (the old "board is 1/3 the screen" bug).
      Portrait: header / board / insight / dock stack. Landscape (below): board + side-rail dock. */
@@ -65,7 +90,8 @@
   .dock{ grid-area:dock; display:flex; flex-direction:column; gap:var(--sp-3); min-height:0; min-width:0;
     max-height:250px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
     padding:var(--sp-3);
-    background:linear-gradient(180deg, color-mix(in srgb, var(--cyan) 5%, transparent), transparent 34%), var(--surface);
+    background:linear-gradient(180deg, color-mix(in srgb, var(--aurora) 6%, transparent), transparent 34%), var(--glass);
+    backdrop-filter:blur(16px) saturate(1.05); -webkit-backdrop-filter:blur(16px) saturate(1.05);
     border:1px solid var(--line);
     border-radius:var(--r-card); box-shadow:var(--shadow-card); }
   #dockcount{ display:none; text-align:left; }   /* mirrored counter, shown only in the landscape rail */
@@ -74,22 +100,27 @@
   #dockcount .num{ font-family:var(--mono); font-size:22px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
   #dockcount .lab{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin-top:4px; }
 
-  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex:0 0 auto; min-width:0; }
+  /* the header sits directly on the scene (no glass), so a soft shadow keeps it legible on a bright sky */
+  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex:0 0 auto; min-width:0;
+    text-shadow:0 1px 12px rgba(4,10,22,.6), 0 1px 2px rgba(4,10,22,.4); }
   .title-wrap{ min-width:0; }
-  .eyebrow{ font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--cyan); font-weight:700; margin:0 0 4px; }
+  .eyebrow{ font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--aurora); font-weight:700; margin:0 0 4px; }
   h1{ font-size:clamp(23px,4.6vw,42px); line-height:.96; margin:0; font-weight:800; letter-spacing:-.022em; }
   .plaque{ font-size:12px; letter-spacing:.06em; font-weight:600; color:var(--ink-faint); margin:5px 0 0; }
   .railfoot{ display:none; margin:0; }            /* quiet editorial footer, revealed only in the landscape rail */
   .legend{ margin:8px 0 0; font-size:12.5px; color:var(--ink-dim); font-weight:600; }
-  .legend b{ font-weight:800; } .legend .w{ color:var(--honey); } .legend .a{ color:var(--cyan); }
+  .legend b{ font-weight:800; } .legend .w{ color:var(--honey); } .legend .a{ color:var(--aurora); }
   .counter{ text-align:right; flex:0 0 auto; min-width:0; }
   .counter .num{ font-family:var(--mono); font-size:clamp(23px,4vw,36px); font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
   .counter .lab{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin-top:5px; }
 
+  /* The board is a pane of frosted glass floating on the scene: translucent fill + backdrop blur so
+     the day/night world glows through behind the pegs and marbles. The canvas inside is transparent. */
   .cabinet{ position:relative; min-height:0; min-width:0; border-radius:22px;
-    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.22));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 80px rgba(0,0,0,.5), 0 30px 70px -34px rgba(0,0,0,.85);
-    border:1px solid var(--line); overflow:hidden;
+    background:linear-gradient(180deg, rgba(34,52,80,.28), rgba(8,16,30,.44));
+    backdrop-filter:blur(16px) saturate(1.08); -webkit-backdrop-filter:blur(16px) saturate(1.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 30px 80px -40px rgba(0,0,0,.82);
+    border:1px solid rgba(184,214,244,.22); overflow:hidden;
     opacity:0; transform:translateY(10px) scale(.994); animation:rise .8s cubic-bezier(.2,.8,.2,1) forwards; }
   @keyframes rise{ to{ opacity:1; transform:none; } }
   canvas{ display:block; width:100%; height:100%; touch-action:none; }
@@ -98,9 +129,10 @@
     padding:6px 13px; border-radius:999px; backdrop-filter:blur(5px); transition:opacity .5s; }
 
   .insight{ flex:0 0 auto; min-height:48px; min-width:0; display:flex; align-items:center; gap:11px; padding:12px 17px; border-radius:var(--r-card);
-    background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-card); font-size:clamp(13px,2.4vw,15.5px); font-weight:600; line-height:1.36; }
+    background:var(--glass); backdrop-filter:blur(14px) saturate(1.05); -webkit-backdrop-filter:blur(14px) saturate(1.05);
+    border:1px solid var(--line); box-shadow:var(--shadow-card); font-size:clamp(13px,2.4vw,15.5px); font-weight:600; line-height:1.36; }
   .insight .dot{ flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 12px var(--amber); }
-  .insight.win .dot{ background:var(--cyan); box-shadow:0 0 12px var(--cyan); }
+  .insight.win .dot{ background:var(--aurora); box-shadow:0 0 12px var(--aurora); }
   .insight.miss .dot{ background:var(--honey); box-shadow:0 0 12px var(--honey); }
   .insight code{ font-family:var(--mono); font-size:.9em; letter-spacing:.05em; background:rgba(0,0,0,.30); padding:1px 6px; border-radius:5px; color:var(--honey); }
 
@@ -112,13 +144,13 @@
     display:inline-flex; align-items:center; justify-content:center; gap:7px; transition:transform .12s var(--ease-settle), background .18s var(--ease-settle), border-color .18s, box-shadow .18s; }
   button:hover{ background:var(--surface-2); }
   button:active{ transform:translateY(1px) scale(.98); }
-  button:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+  button:focus-visible{ outline:2px solid var(--aurora); outline-offset:2px; }
   button:disabled{ opacity:.4; cursor:not-allowed; }
   button.primary{ background:linear-gradient(180deg,var(--amber),var(--amber-deep)); border-color:transparent; color:#2a1405; box-shadow:0 9px 22px -11px var(--amber-deep); }
   button.primary:hover{ filter:brightness(1.05); }
   button.pulse{ animation:pulse 1.9s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 0 color-mix(in srgb, var(--amber) 50%, transparent);} 50%{ box-shadow:0 9px 22px -11px var(--amber-deep), 0 0 0 11px transparent;} }
-  button[aria-pressed="true"]{ background:var(--surface-2); border-color:color-mix(in srgb, var(--cyan) 50%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--cyan) 25%, transparent); }
+  button[aria-pressed="true"]{ background:var(--surface-2); border-color:color-mix(in srgb, var(--aurora) 50%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--aurora) 25%, transparent); }
   button.rain[aria-pressed="true"]{ border-color:color-mix(in srgb, var(--amber) 60%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--amber) 30%, transparent); }
   button .live{ width:8px; height:8px; border-radius:50%; background:var(--amber); box-shadow:0 0 10px var(--amber); animation:blink 1s ease-in-out infinite; }
   @keyframes blink{ 50%{ opacity:.25; } }
@@ -140,10 +172,10 @@
     box-shadow:inset 0 1px 2px rgba(0,0,0,.5); outline:none; touch-action:none; }
   input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; box-shadow:0 2px 6px rgba(0,0,0,.45); }
   input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--honey); cursor:pointer; border:2px solid #0c1a26; }
-  input[type=range]:focus-visible{ outline:2px solid var(--cyan); outline-offset:4px; }
-  input[type=range].wild::-webkit-slider-thumb{ background:var(--cyan); }
-  input[type=range].wild::-moz-range-thumb{ background:var(--cyan); }
-  input[type=range].wild{ background:linear-gradient(90deg, color-mix(in srgb, var(--cyan) 55%, transparent) var(--fill,0%), rgba(245,238,224,.16) var(--fill,0%)); }
+  input[type=range]:focus-visible{ outline:2px solid var(--aurora); outline-offset:4px; }
+  input[type=range].wild::-webkit-slider-thumb{ background:var(--aurora); }
+  input[type=range].wild::-moz-range-thumb{ background:var(--aurora); }
+  input[type=range].wild{ background:linear-gradient(90deg, color-mix(in srgb, var(--aurora) 55%, transparent) var(--fill,0%), rgba(245,238,224,.16) var(--fill,0%)); }
 
   /* collapsible panels — hidden until their toggle adds .on (keeps the default bottom bar lean) */
   .dock .optsrow:not(.on){ display:none; }        /* .dock-scoped so it out-specifies the grid rule when collapsed */
@@ -151,7 +183,7 @@
   .stat{ display:flex; align-items:center; justify-content:space-between; gap:7px; padding:9px 14px; background:var(--surface); border:1px solid var(--line);
     border-radius:var(--r-ctl); min-height:44px; min-width:0; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
   .stat b{ font-family:var(--mono); font-weight:600; color:var(--honey); font-variant-numeric:tabular-nums; }
-  .stat.hot{ border-color:color-mix(in srgb, var(--cyan) 50%, transparent); } .stat.hot b{ color:var(--cyan); }
+  .stat.hot{ border-color:color-mix(in srgb, var(--aurora) 50%, transparent); } .stat.hot b{ color:var(--aurora); }
   .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; }
 
   /* PHONE cosmetics only — the symmetric portrait GRID lives in @media(orientation:portrait) below. */
@@ -199,7 +231,7 @@
     .dock .seg{ grid-column:1 / -1; }
     .dock .slider{ grid-column:1 / -1; grid-template-columns:4.5em 1fr auto; }  /* narrower label col: the rail is tight */
     .dock .stat{ grid-column:1 / -1; }
-    .dock #sound, .dock #resetrules{ grid-column:1 / -1; }   /* keep the odd trailing toggle from orphaning */
+    .dock #musicbtn, .dock #resetrules{ grid-column:1 / -1; }   /* keep the odd trailing toggle from orphaning */
     .railhead{ display:block; padding:0 2px var(--sp-3); margin-bottom:var(--sp-1); border-bottom:1px solid var(--line); }
     .railhead-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:3px; }
     .railtitle{ font-size:28px; }
@@ -223,33 +255,42 @@
     .app.learn .learntext{ font-size:13.5px; }
   }
   .learnhead{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-  .learnkicker{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--cyan); font-weight:700; }
+  .learnkicker{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--aurora); font-weight:700; }
   .dots{ display:flex; align-items:center; }
   .dots button{ min-height:32px; min-width:24px; padding:0; background:none; border:none; border-radius:50%; }
   .dots button::after{ content:''; display:block; margin:0 auto; width:9px; height:9px; border-radius:50%;
     background:rgba(255,255,255,.14); box-shadow:inset 0 0 0 1px var(--line); transition:transform .2s var(--ease-settle), background .2s; }
-  .dots button.done::after{ background:color-mix(in srgb, var(--cyan) 60%, transparent); box-shadow:none; }
-  .dots button.now::after{ background:var(--cyan); box-shadow:0 0 10px var(--cyan); transform:scale(1.3); }
+  .dots button.done::after{ background:color-mix(in srgb, var(--aurora) 60%, transparent); box-shadow:none; }
+  .dots button.now::after{ background:var(--aurora); box-shadow:0 0 10px var(--aurora); transform:scale(1.3); }
   .learntext{ margin:0; font-size:14px; line-height:1.5; font-weight:600; padding:0 2px; }
-  .learndone{ margin:0; font-size:12.5px; font-weight:700; color:var(--cyan); padding:0 2px; display:none; }
+  .learndone{ margin:0; font-size:12.5px; font-weight:700; color:var(--aurora); padding:0 2px; display:none; }
   .learndone.on{ display:block; }
   .learnstage{ display:none; flex-direction:column; gap:var(--sp-2); }
   .learnstage.on{ display:flex; }
   .learntools{ display:none; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
   .learntools.on{ display:grid; }
   .learnnav{ display:grid; grid-template-columns:auto auto 1fr; gap:var(--sp-2); }
-  .spotlight{ border-color:color-mix(in srgb, var(--cyan) 65%, transparent) !important; animation:spot 1.7s ease-in-out infinite; }
-  @keyframes spot{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--cyan) 40%, transparent); } 50%{ box-shadow:0 0 0 9px transparent; } }
+  .spotlight{ border-color:color-mix(in srgb, var(--aurora) 65%, transparent) !important; animation:spot 1.7s ease-in-out infinite; }
+  @keyframes spot{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--aurora) 40%, transparent); } 50%{ box-shadow:0 0 0 9px transparent; } }
 
   @media (prefers-reduced-motion: reduce){
     .cabinet{ animation:none; opacity:1; transform:none; }
-    button.pulse,.live{ animation:none; }
-    .spotlight{ animation:none; box-shadow:0 0 0 2px color-mix(in srgb, var(--cyan) 40%, transparent); }
+    button.pulse,.live,.veil-cta{ animation:none; }
+    .veil-cta{ opacity:.85; }
+    .spotlight{ animation:none; box-shadow:0 0 0 2px color-mix(in srgb, var(--aurora) 40%, transparent); }
     *{ transition:none !important; }
   }
 </style>
 </head>
 <body>
+<canvas id="scene"></canvas>
+<div class="veil" id="veil">
+  <div class="veil-inner">
+    <p class="veil-kicker">Lanikai, after dark</p>
+    <h1 class="veil-title">Plink</h1>
+    <p class="veil-cta" id="veilcta">tap anywhere to begin</p>
+  </div>
+</div>
 <div class="app">
   <div class="topbar">
     <div class="title-wrap">
@@ -308,7 +349,7 @@
     <div class="group">
       <button id="bell" aria-pressed="true">Bell curve</button>
       <button id="paths" aria-pressed="false">Show paths</button>
-      <button id="sound" aria-pressed="false">Sound</button>
+      <button id="musicbtn" aria-pressed="true">Music</button>
     </div>
   </div>
 
@@ -363,7 +404,7 @@
   const UIFONT='800 13px system-ui, -apple-system, sans-serif';
 
   // === CONFIG ===  shared view state + the "rig" (bias/momentum/wild) the levers set.
-  const S={ rows:15, speed:1, showBell:true, showPaths:false, sound:false, rainOn:false,
+  const S={ rows:15, speed:1, showBell:true, showPaths:false, music:true, sfx:true, rainOn:false,
             guessMode:false, depth:'explore', logScale:false, compare:false,
             bias:0.5, momentum:0, wild:0,
             mode:'play' /* 'play' = the untouched sandbox; 'learn' = the story journey */,
@@ -381,7 +422,7 @@
   }
   let boards=[], primary=null, ballId=0;
   let guessBin=null, awaitingGuess=false;
-  let dust=[], geoRoot={}, interacted=false, spriteCache={};
+  let geoRoot={}, interacted=false, spriteCache={};
 
   function buildBoards(){
     if(S.compare){
@@ -391,7 +432,7 @@
       boards=[ makeBoard({bias:S.bias,momentum:S.momentum,wild:S.wild,label:'',
                           rigged:(S.bias!==0.5||S.momentum>0||S.wild>0)}) ];
     }
-    primary=boards[0]; ballId=0; makeDust(); layoutAll(); updateCount();
+    primary=boards[0]; ballId=0; layoutAll(); updateCount();
   }
   // Levers mutate the live board(s) in place so the histogram survives a slider nudge.
   function applyRig(){
@@ -406,7 +447,9 @@
 
   /* ---------------- colour ---------------- */
   function hx(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
-  let HONEY=hx('FFB166'), AMBER=hx('FF7A1A'), AMBERD=hx('EA5A08'), CYAN=hx('3DF0DE'), CYANS=hx('86F5EA');
+  // Warm middle ramp (calm), aurora-green rare edge (pop) — CYAN/CYANS keep their names but now carry
+  // the aurora green so a far-out marble's glow echoes the sky. Semantics unchanged: middle calm, edge pops.
+  let HONEY=hx('FFD9A3'), AMBER=hx('FFB86B'), AMBERD=hx('F0932B'), CYAN=hx('7FE8A9'), CYANS=hx('C9F5DE');
   function mix(a,b,t){ t=Math.max(0,Math.min(1,t)); return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)]; }
   // Colour by rarity only (distance from the peg centre), so sprites are shared across boards.
   // Slots beyond the peg spread can only be reached by a wild jump — they glow cyan, brighter the farther out.
@@ -523,7 +566,6 @@
     if(ts){ ts.querySelector('b').textContent=st.share.toFixed(1)+'%'; ts.classList.toggle('hot', st.share>1.0); }
     if(ss){ ss.querySelector('b').textContent=(b.total?b.farSigma.toFixed(1):'0.0')+'σ'; ss.classList.toggle('hot', b.farSigma>4); }
   }
-  function makeDust(){ dust=[]; if(reduce) return; for(let i=0;i<26;i++) dust.push({ x:Math.random(), y:Math.random()*0.62, r:Math.random()*1.1+0.3, a:Math.random()*0.05+0.02 }); }
 
   /* ---------------- balls ---------------- */
   function segTarget(b){ const g=b.board.geo;
@@ -668,46 +710,85 @@
   function compareMsg(){ setInsight(S.compare? 'Two machines, one floor. <b>Left is fair</b>; <b>right is rigged</b> by your levers. Pour into both: the middles match, the tails do not.' : 'Back to one machine.',''); }
 
   /* ---------------- audio ---------------- */
-  // All synthesized (no files). Off by default; the context is only created inside a user gesture.
-  let AC=null, master=null, plinkWin=[], ambient=null;
-  function ensureAudio(){ if(!S.sound) return; if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=.9; master.connect(AC.destination); }catch(e){ AC=null; } } if(AC&&AC.state==='suspended') AC.resume(); }
-  // pitch helper: map an index onto a pentatonic scale so a rain of plinks stays musical
+  // Two layers: (1) a looping music BED from a sidecar theme.mp3 (fetch + decodeAudioData, dual-source
+  // equal-power crossfade at the seam so it loops seamlessly even if the track doesn't), and (2)
+  // synthesized pentatonic PLINKS/thuds mixed quiet ON TOP so the falling balls play melody over the
+  // music. The context is created only inside a user gesture (the veil tap). Missing/undecodable
+  // theme.mp3 degrades to silence with no error surface; the plinks still work.
+  let AC=null, master=null, musicBus=null, sfxBus=null, plinkWin=[];
+  let musicBuf=null, musicReq=false, musicNodes=[], musicLoopTimer=0, musicStopTimer=0, musicStarted=false;
+  const MUSIC_URL='theme.mp3', XFADE=2.0;   // seconds of equal-power crossfade at the loop seam
+  function ensureAudio(){
+    if(!AC){ try{
+      AC=new (window.AudioContext||window.webkitAudioContext)();
+      master=AC.createGain(); master.gain.value=.9; master.connect(AC.destination);
+      musicBus=AC.createGain(); musicBus.gain.value=0.0; musicBus.connect(master);   // faded in on start
+      sfxBus=AC.createGain(); sfxBus.gain.value=1.0; sfxBus.connect(master);
+    }catch(e){ AC=null; } }
+    if(AC&&AC.state==='suspended') AC.resume();
+    return !!AC;
+  }
+  // ---- music bed ----
+  function loadMusic(){ if(musicReq||musicBuf||!AC) return; musicReq=true;
+    fetch(MUSIC_URL).then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(buf=>AC.decodeAudioData(buf))
+      .then(dec=>{ musicBuf=dec; if(S.music&&musicStarted) scheduleMusicLoop(); })
+      .catch(()=>{ musicBuf=null; });   // graceful silence: no track, plinks still work
+  }
+  function playMusicOnce(startAt){
+    const src=AC.createBufferSource(), g=AC.createGain(); src.buffer=musicBuf;
+    const dur=musicBuf.duration, xf=Math.min(XFADE,dur*0.5);
+    g.gain.setValueAtTime(0.0001,startAt);
+    g.gain.exponentialRampToValueAtTime(1.0,startAt+xf);        // fade in over the seam
+    g.gain.setValueAtTime(1.0,startAt+dur-xf);
+    g.gain.exponentialRampToValueAtTime(0.0001,startAt+dur);    // fade out over the seam
+    src.connect(g); g.connect(musicBus); src.start(startAt); src.stop(startAt+dur+0.05);
+    musicNodes.push({src,g}); if(musicNodes.length>4) musicNodes.shift();
+    return {dur,xf};
+  }
+  function scheduleMusicLoop(){ if(!AC||!musicBuf||!S.music) return;
+    stopMusicNodes();
+    let when=AC.currentTime+0.05;
+    const {dur,xf}=playMusicOnce(when);
+    const gap=Math.max(0.5,dur-xf);                             // next voice starts as this one begins its tail fade
+    const tick=()=>{ if(!AC||!musicBuf||!S.music) return; const next=when+gap; playMusicOnce(next); when=next; musicLoopTimer=setTimeout(tick, gap*1000); };
+    musicLoopTimer=setTimeout(tick, gap*1000);
+  }
+  function stopMusicNodes(){ if(musicLoopTimer){ clearTimeout(musicLoopTimer); musicLoopTimer=0; }
+    musicNodes.forEach(n=>{ try{n.src.stop()}catch(e){} }); musicNodes=[]; }
+  function startMusic(){ if(!AC||!S.music) return; musicStarted=true;
+    if(musicStopTimer){ clearTimeout(musicStopTimer); musicStopTimer=0; }   // cancel a pending stop so a fast off->on doesn't strand the restart
+    musicBus.gain.cancelScheduledValues(AC.currentTime);
+    musicBus.gain.setTargetAtTime(0.55, AC.currentTime, 1.2);   // gentle swell in
+    if(musicBuf) scheduleMusicLoop(); else loadMusic();
+  }
+  function stopMusic(){ if(!AC) return;
+    musicBus.gain.cancelScheduledValues(AC.currentTime);
+    musicBus.gain.setTargetAtTime(0.0, AC.currentTime, 0.5);
+    if(musicStopTimer) clearTimeout(musicStopTimer);
+    musicStopTimer=setTimeout(()=>{ musicStopTimer=0; stopMusicNodes(); }, 900);
+  }
+  function setMusic(on){ S.music=on; saveProgress();
+    const btn=document.getElementById('musicbtn'); if(btn) btn.setAttribute('aria-pressed',on?'true':'false');
+    if(!ensureAudio()) return; if(on) startMusic(); else stopMusic();
+  }
+  // ---- synthesized plinks (mixed quiet over the music bed) ----
+  // pitch helper: map an index onto a pentatonic scale so a rain of plinks stays musical over C/Am
   const PENT=[0,2,4,7,9];
   function pent(base,i){ i=Math.max(0,i|0); return base*Math.pow(2,(PENT[i%5]+12*(((i/5)|0)%2))/12); }
-  function plink(row){ if(!S.sound||!AC) return; const now=AC.currentTime; plinkWin=plinkWin.filter(t=>now-t<0.1); if(plinkWin.length>7) return; plinkWin.push(now);
+  function plink(row){ if(!S.sfx||!AC) return; const now=AC.currentTime; plinkWin=plinkWin.filter(t=>now-t<0.1); if(plinkWin.length>7) return; plinkWin.push(now);
     const o=AC.createOscillator(), g=AC.createGain(), f=pent(524,row)*(1+(Math.random()*0.012-0.006));
     o.type='sine'; o.frequency.setValueAtTime(f*0.75,now); o.frequency.exponentialRampToValueAtTime(f,now+.045);
-    const v=S.rainOn?.02:.045; g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(v,now+.006); g.gain.exponentialRampToValueAtTime(.0001,now+.14); o.connect(g); g.connect(master); o.start(now); o.stop(now+.16); }
-  // the landing is a water drop: a soft sine gliding up to pitch, pitched by the landing slot
-  function thud(slot){ if(!S.sound||!AC||S.rainOn) return; const now=AC.currentTime;
+    const v=S.rainOn?.014:.030; g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(v,now+.006); g.gain.exponentialRampToValueAtTime(.0001,now+.14); o.connect(g); g.connect(sfxBus); o.start(now); o.stop(now+.16); }
+  // the landing is a soft water drop, pitched by the landing slot, quiet under the bed
+  function thud(slot){ if(!S.sfx||!AC||S.rainOn) return; const now=AC.currentTime;
     const o=AC.createOscillator(), g=AC.createGain(), f=pent(196,Math.max(0,Math.min(S.rows,slot)));
     o.type='sine'; o.frequency.setValueAtTime(f*0.62,now); o.frequency.exponentialRampToValueAtTime(f,now+.07);
-    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.06,now+.012); g.gain.exponentialRampToValueAtTime(.0001,now+.26); o.connect(g); g.connect(master); o.start(now); o.stop(now+.28); }
-  function chord(){ if(!S.sound||!AC) return; const now=AC.currentTime; [0,4,7,12].forEach((st,i)=>{ const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=440*Math.pow(2,st/12); const t=now+i*.06;
-    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.085,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.5); o.connect(g); g.connect(master); o.start(t); o.stop(t+.55); });
+    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(.040,now+.012); g.gain.exponentialRampToValueAtTime(.0001,now+.26); o.connect(g); g.connect(sfxBus); o.start(now); o.stop(now+.28); }
+  function chord(){ if(!S.sfx||!AC) return; const now=AC.currentTime; [0,4,7,12].forEach((st,i)=>{ const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=440*Math.pow(2,st/12); const t=now+i*.06;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.060,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.5); o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t+.55); });
     const s=AC.createOscillator(), sg=AC.createGain(); s.type='sine'; s.frequency.value=2093;   // bell sparkle on top for the rare-event chime
-    sg.gain.setValueAtTime(.0001,now); sg.gain.exponentialRampToValueAtTime(.035,now+.015); sg.gain.exponentialRampToValueAtTime(.0001,now+.4); s.connect(sg); sg.connect(master); s.start(now); s.stop(now+.45); }
-  // ambient sea pad: two detuned low sines breathing through a slow lowpass, plus a whisper of surf noise
-  function makeNoiseBuffer(){ const len=AC.sampleRate*2, b=AC.createBuffer(1,len,AC.sampleRate), d=b.getChannelData(0); for(let i=0;i<len;i++) d[i]=Math.random()*2-1; return b; }
-  function startAmbient(){ if(!AC||ambient) return;
-    const bus=AC.createGain(); bus.gain.value=0; bus.connect(master);
-    const o1=AC.createOscillator(), o2=AC.createOscillator(), lp=AC.createBiquadFilter(), padG=AC.createGain();
-    o1.type='sine'; o2.type='sine'; o1.frequency.value=98; o2.frequency.value=98*1.006;
-    lp.type='lowpass'; lp.frequency.value=420;
-    const lfo=AC.createOscillator(), lfoG=AC.createGain(); lfo.frequency.value=0.07; lfoG.gain.value=160; lfo.connect(lfoG); lfoG.connect(lp.frequency);
-    padG.gain.value=0.11; o1.connect(lp); o2.connect(lp); lp.connect(padG); padG.connect(bus);
-    const nb=AC.createBufferSource(); nb.buffer=makeNoiseBuffer(); nb.loop=true;
-    const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=620; bp.Q.value=0.5;
-    const ng=AC.createGain(); ng.gain.value=0.014;
-    const sl=AC.createOscillator(), slG=AC.createGain(); sl.frequency.value=0.09; slG.gain.value=0.009; sl.connect(slG); slG.connect(ng.gain);
-    nb.connect(bp); bp.connect(ng); ng.connect(bus);
-    [o1,o2,lfo,nb,sl].forEach(nd=>nd.start());
-    bus.gain.setTargetAtTime(0.5, AC.currentTime, 0.8);           // slow fade-in, like a tide coming in
-    ambient={bus, nodes:[o1,o2,lfo,nb,sl]};
-  }
-  function stopAmbient(){ if(!ambient||!AC) return; const a=ambient; ambient=null;
-    a.bus.gain.setTargetAtTime(0, AC.currentTime, 0.4);
-    setTimeout(()=>{ a.nodes.forEach(nd=>{ try{nd.stop()}catch(e){} }); try{a.bus.disconnect()}catch(e){} }, 1400); }
+    sg.gain.setValueAtTime(.0001,now); sg.gain.exponentialRampToValueAtTime(.026,now+.015); sg.gain.exponentialRampToValueAtTime(.0001,now+.4); s.connect(sg); sg.connect(sfxBus); s.start(now); s.stop(now+.45); }
 
   /* ---------------- spawn pump ---------------- */
   function pump(board,dt){
@@ -728,40 +809,182 @@
     dc.forEach(c=>{ if(c>mx) mx=c; });
     return { dc, loP, hiP, mx };
   }
-  /* ---------------- aurora (the sky) ---------------- */
-  // Pre-rendered glow blobs blitted additively each frame — never build gradients per frame.
-  // Slow sine drift, concentrated in the upper board, so the histogram shelf stays legible.
-  let auroraBlobs=[], auroraT=12;
-  function makeAuroraBlobs(){
-    auroraBlobs=[];
-    const defs=[ {rgb:CYAN,a:0.11,seed:0.15}, {rgb:CYANS,a:0.08,seed:0.45}, {rgb:hx('12B9AC'),a:0.10,seed:0.72}, {rgb:hx('0B2B33'),a:0.22,seed:0.9} ];  // palette only: cyan, cyan-soft, cyan-deep, bg-glow
-    for(const d of defs){
-      const S0=256, c=document.createElement('canvas'); c.width=c.height=S0; const g=c.getContext('2d');
-      const gr=g.createRadialGradient(S0/2,S0/2,0,S0/2,S0/2,S0/2);
-      gr.addColorStop(0,'rgba('+d.rgb.join(',')+','+d.a+')');
-      gr.addColorStop(0.55,'rgba('+d.rgb.join(',')+','+(d.a*0.4)+')');
-      gr.addColorStop(1,'rgba('+d.rgb.join(',')+',0)');
-      g.fillStyle=gr; g.fillRect(0,0,S0,S0);
-      auroraBlobs.push({ canvas:c,
-        phX:d.seed*6.283, phY:d.seed*9.4, phR:d.seed*4.7,
-        ampX:0.16+d.seed*0.14, ampY:0.07+d.seed*0.06,
-        spd:0.05+d.seed*0.05, baseY:0.10+d.seed*0.26, scale:1.3+d.seed*1.1 });
+  /* ==================== SCENE (the world) ====================
+     A full-bleed background canvas painting a Lanikai / Kailua day-night dreamscape in
+     drawaurora.com's flat painterly language: a keyframe-interpolated sky, a celestial arc,
+     atmospheric-haze silhouettes with the two Mokulua islets, and a mirror-reflected sea with a
+     moonglitter path and (at night) brushed aurora ribbons reflecting down the water. Runs on an
+     accelerated clock the app owns; Learn borrows the sky per chapter (easeTo/release). Wrapped in
+     its own IIFE so its private helpers never collide with the board's draw functions. */
+  const Scene=(function(){
+    const scv=document.getElementById('scene'), sctx=scv.getContext('2d',{alpha:false});
+    let W=0,H=0,horizonY=0;
+    // ---- phase keyframe color table (t anchored; interpolate the nearest two) ----
+    const KEYS=[
+      { t:0.00, name:"Night",   zenith:[8,14,28],  mid:[10,20,40],  horizon:[16,34,58],  seaTop:[16,51,63],  seaDeep:[7,20,30],  light:[150,180,220], starK:1.00, cloud:[40,54,78],  cloudA:0.10 },
+      { t:0.20, name:"Dawn",    zenith:[36,44,74], mid:[70,78,110], horizon:[168,150,150],seaTop:[70,92,104], seaDeep:[26,44,58], light:[236,190,168], starK:0.28, cloud:[150,150,170],cloudA:0.20 },
+      { t:0.26, name:"Sunrise", zenith:[74,96,150],mid:[196,150,142],horizon:[248,196,138],seaTop:[92,132,146],seaDeep:[36,72,92], light:[255,196,120], starK:0.00, cloud:[255,214,188],cloudA:0.30 },
+      { t:0.50, name:"Day",     zenith:[70,140,206],mid:[128,190,224],horizon:[196,232,240],seaTop:[47,185,196],seaDeep:[16,96,120],light:[255,246,224], starK:0.00, cloud:[255,255,255],cloudA:0.85 },
+      { t:0.74, name:"Golden Hour",zenith:[86,74,132],mid:[224,120,96],horizon:[245,166,35],seaTop:[130,150,150],seaDeep:[52,58,74],light:[255,180,80], starK:0.00, cloud:[255,196,150],cloudA:0.55 },
+      { t:0.82, name:"Dusk",    zenith:[26,24,58], mid:[70,52,96],  horizon:[150,90,110], seaTop:[54,58,80],  seaDeep:[20,28,46], light:[210,150,190], starK:0.45, cloud:[86,72,104], cloudA:0.25 },
+      { t:1.00, name:"Night",   zenith:[8,14,28],  mid:[10,20,40],  horizon:[16,34,58],  seaTop:[16,51,63],  seaDeep:[7,20,30],  light:[150,180,220], starK:1.00, cloud:[40,54,78],  cloudA:0.10 },
+    ];
+    const lerp=(a,b,u)=>a+(b-a)*u, clamp=(x,a,b)=>x<a?a:(x>b?b:x), smooth=u=>u*u*(3-2*u);
+    const lerpRGB=(a,b,u)=>[lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u)];
+    const rgb=(c,a)=> a==null?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+    function paletteAt(t){ t=((t%1)+1)%1; let i=0;
+      for(let k=0;k<KEYS.length-1;k++){ if(t>=KEYS[k].t && t<=KEYS[k+1].t){ i=k; break; } }
+      const A=KEYS[i], B=KEYS[i+1], span=(B.t-A.t)||1, u=smooth(clamp((t-A.t)/span,0,1));
+      return { name:u<0.5?A.name:B.name, zenith:lerpRGB(A.zenith,B.zenith,u), mid:lerpRGB(A.mid,B.mid,u),
+        horizon:lerpRGB(A.horizon,B.horizon,u), seaTop:lerpRGB(A.seaTop,B.seaTop,u), seaDeep:lerpRGB(A.seaDeep,B.seaDeep,u),
+        light:lerpRGB(A.light,B.light,u), starK:lerp(A.starK,B.starK,u), cloud:lerpRGB(A.cloud,B.cloud,u), cloudA:lerp(A.cloudA,B.cloudA,u) }; }
+    function celestial(t){ const su=(t-0.25)/0.5, sunX=lerp(0.14,0.86,clamp(su,0,1)), sunArc=Math.sin(clamp(su,0,1)*Math.PI), sunAbove=(t>0.22&&t<0.78);
+      let mu; if(t>=0.78) mu=(t-0.78)/0.44; else mu=(t+0.22)/0.44;
+      const moonX=lerp(0.16,0.84,clamp(mu,0,1)), moonArc=Math.sin(clamp(mu,0,1)*Math.PI), moonAbove=(t>=0.78||t<=0.22);
+      return { sunX, sunArc, sunAbove, moonX, moonArc, moonAbove }; }
+    // ---- offscreen pre-renders (built once per resize, blitted every frame) ----
+    let starSprite, auroraSprite, glowSprite, cloudSprite, tintCanvas;
+    function makeRadial(size,inner,outer){ const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); const r=size/2;
+      const gr=g.createRadialGradient(r,r,0,r,r,r); gr.addColorStop(0,inner); gr.addColorStop(1,outer); g.fillStyle=gr; g.beginPath(); g.arc(r,r,r,0,7); g.fill(); return c; }
+    function makeStarSprite(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d');
+      const dot=makeRadial(64,'rgba(255,255,255,1)','rgba(255,255,255,0)'), N=Math.floor(w*h/2600);
+      for(let i=0;i<N;i++){ const x=Math.random()*w, y=Math.random()*h*0.86, blur=Math.random();
+        const s=blur<0.7?(1.2+Math.random()*2.2):(3+Math.random()*7), bright=blur<0.7?(0.5+Math.random()*0.5):(0.12+Math.random()*0.28), tint=Math.random();
+        g.globalAlpha=bright; g.filter=tint<0.12?'hue-rotate(30deg) saturate(1.4)':(tint>0.9?'hue-rotate(200deg) saturate(1.2)':'none'); g.drawImage(dot,x-s,y-s,s*2,s*2); }
+      g.filter='none'; g.globalAlpha=1; return c; }
+    function makeAuroraSprite(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d'); g.globalCompositeOperation='lighter';
+      const ribbons=[ {yBase:0.42,amp:0.10,freq:1.4,phase:0.0,hueTop:[127,232,169],hueBot:[142,160,232],thick:0.30,a:0.55},
+        {yBase:0.30,amp:0.13,freq:1.0,phase:1.7,hueTop:[150,240,190],hueBot:[120,150,238],thick:0.22,a:0.42},
+        {yBase:0.55,amp:0.07,freq:2.1,phase:3.1,hueTop:[110,224,150],hueBot:[150,170,235],thick:0.18,a:0.30} ];
+      for(const rb of ribbons){ const streaks=Math.floor(w/6);
+        for(let i=0;i<streaks;i++){ const fx=i/streaks, x=fx*w, drape=Math.sin(fx*Math.PI*rb.freq+rb.phase), yc=(rb.yBase+rb.amp*drape)*h,
+            hgt=rb.thick*h*(0.6+0.5*Math.abs(Math.sin(fx*Math.PI*rb.freq*1.7+rb.phase))), top=yc-hgt*0.35, bot=yc+hgt*0.75;
+          const gr=g.createLinearGradient(0,top,0,bot); gr.addColorStop(0,rgb(rb.hueTop,0)); gr.addColorStop(0.35,rgb(rb.hueTop,rb.a)); gr.addColorStop(0.75,rgb(rb.hueBot,rb.a*0.7)); gr.addColorStop(1,rgb(rb.hueBot,0));
+          g.fillStyle=gr; const ww=(w/streaks)*(1.4+Math.random()*1.2); g.fillRect(x-ww/2,top,ww,bot-top); } }
+      g.globalCompositeOperation='source-over';
+      const blurC=document.createElement('canvas'); blurC.width=w; blurC.height=h; const bg=blurC.getContext('2d');
+      bg.filter='blur(6px)'; bg.drawImage(c,0,0); bg.filter='blur(2px)'; bg.globalAlpha=0.7; bg.drawImage(c,0,0); return blurC; }
+    function makeCloudSprite(){ const w=340,h=170,c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d');
+      const puffs=[[90,110,60],[150,90,78],[210,100,66],[130,120,54],[250,116,44],[60,120,40]];
+      for(const [x,y,r] of puffs){ const gs=g.createRadialGradient(x,y+r*0.35,0,x,y+r*0.35,r*1.1); gs.addColorStop(0,'rgba(120,140,170,0.28)'); gs.addColorStop(1,'rgba(120,140,170,0)'); g.fillStyle=gs; g.beginPath(); g.arc(x,y+r*0.35,r*1.1,0,7); g.fill(); }
+      for(const [x,y,r] of puffs){ const gs=g.createRadialGradient(x,y-r*0.15,0,x,y,r); gs.addColorStop(0,'rgba(255,255,255,0.98)'); gs.addColorStop(0.7,'rgba(255,255,255,0.85)'); gs.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gs; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
+      return c; }
+    let twinkles=[], birds=[], clouds=[];
+    function buildTwinkles(){ twinkles=[]; for(let i=0;i<26;i++) twinkles.push({x:Math.random(),y:Math.random()*0.7,ph:Math.random()*7,sp:0.6+Math.random()*1.4,s:1+Math.random()*2}); }
+    function buildBirds(){ birds=[]; for(let i=0;i<7;i++) birds.push({x:Math.random(),y:0.16+Math.random()*0.16,sp:0.006+Math.random()*0.006,ph:Math.random()*7,sz:5+Math.random()*5}); }
+    function buildClouds(){ clouds=[]; for(let i=0;i<5;i++) clouds.push({x:Math.random(),y:0.10+Math.random()*0.22,sc:0.55+Math.random()*0.9,sp:0.004+Math.random()*0.006}); }
+    // ---- resize ----
+    function resize(){ W=Math.max(1,window.innerWidth||1); H=Math.max(1,window.innerHeight||1);  // clamp so a 0-size viewport never builds a 0-dim sprite (drawImage throws on those)
+      scv.width=Math.round(W*DPR); scv.height=Math.round(H*DPR); scv.style.width=W+'px'; scv.style.height=H+'px'; sctx.setTransform(DPR,0,0,DPR,0,0);
+      horizonY=Math.max(1,Math.round(H*0.60));
+      starSprite=makeStarSprite(Math.min(W,1600),Math.round(horizonY));
+      auroraSprite=makeAuroraSprite(Math.min(W,1400),Math.round(horizonY*0.9));
+      cloudSprite=cloudSprite||makeCloudSprite(); glowSprite=makeRadial(256,'rgba(255,255,255,1)','rgba(255,255,255,0)');
+      buildTwinkles(); if(!birds.length) buildBirds(); if(!clouds.length) buildClouds(); }
+    // ---- sky band draw helpers (order matters: the sea samples this band) ----
+    function drawSky(P){ const g=sctx.createLinearGradient(0,0,0,horizonY); g.addColorStop(0,rgb(P.zenith)); g.addColorStop(0.55,rgb(P.mid)); g.addColorStop(1,rgb(P.horizon)); sctx.fillStyle=g; sctx.fillRect(0,0,W,horizonY); }
+    function drawStars(P,time){ if(P.starK<=0.01) return; sctx.globalAlpha=P.starK; sctx.drawImage(starSprite,0,0,starSprite.width,starSprite.height,0,0,W,horizonY); sctx.globalAlpha=1;
+      if(reduce) return; for(const tw of twinkles){ const a=P.starK*(0.4+0.6*Math.abs(Math.sin(time*tw.sp+tw.ph))), s=tw.s*(1+0.4*Math.sin(time*tw.sp*1.3+tw.ph)); sctx.globalAlpha=a; sctx.drawImage(glowSprite,tw.x*W-s*3,tw.y*horizonY*0.9-s*3,s*6,s*6); } sctx.globalAlpha=1; }
+    function drawAurora(P,time){ if(P.starK<=0.02) return; const a=P.starK*0.9, aw=auroraSprite.width, ah=auroraSprite.height;
+      sctx.globalCompositeOperation='lighter'; sctx.globalAlpha=a;
+      const dx=reduce?0:Math.sin(time*0.05)*W*0.03, dy=reduce?0:Math.sin(time*0.08)*8, drawH=horizonY*0.72, drawW=W*1.1;
+      sctx.drawImage(auroraSprite,0,0,aw,ah,-W*0.05+dx,horizonY*0.06+dy,drawW,drawH);
+      sctx.globalAlpha=a*0.5; sctx.drawImage(auroraSprite,0,0,aw,ah,-W*0.05-dx*0.6,horizonY*0.02-dy*0.5,drawW*1.05,drawH*0.9);
+      sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over'; }
+    function drawClouds(P,time){ if(P.cloudA<=0.02) return; for(const cl of clouds){ const x=((cl.x+(reduce?0:time*cl.sp))%1.2-0.1)*W, y=cl.y*horizonY, w=340*cl.sc, h=170*cl.sc; sctx.globalAlpha=P.cloudA; sctx.drawImage(cloudSprite,x-w/2,y-h/2,w,h); } sctx.globalAlpha=1; }
+    function drawBirds(P,time){ const vis=clamp(1-P.starK*3,0,1); if(vis<=0.05||reduce) return; sctx.strokeStyle='rgba(40,54,70,'+(0.5*vis)+')'; sctx.lineWidth=1.6;
+      for(const b of birds){ const x=((b.x+time*b.sp)%1.15-0.075)*W, y=(b.y+Math.sin(time*0.6+b.ph)*0.01)*horizonY, s=b.sz, flap=Math.sin(time*4+b.ph)*0.35;
+        sctx.beginPath(); sctx.moveTo(x-s,y+flap*s); sctx.quadraticCurveTo(x,y-s*0.5,x,y); sctx.quadraticCurveTo(x,y-s*0.5,x+s,y+flap*s); sctx.stroke(); } }
+    function tintDraw(sprite,x,y,w,h,tint){ if(!tintCanvas) tintCanvas=document.createElement('canvas'); const s=Math.max(2,Math.ceil(Math.max(w,h)));
+      if(tintCanvas.width<s||tintCanvas.height<s){ tintCanvas.width=s; tintCanvas.height=s; } const tc=tintCanvas.getContext('2d');
+      tc.clearRect(0,0,tintCanvas.width,tintCanvas.height); tc.globalCompositeOperation='source-over'; tc.drawImage(sprite,0,0,w,h);
+      tc.globalCompositeOperation='source-in'; tc.fillStyle=rgb(tint); tc.fillRect(0,0,w,h); tc.globalCompositeOperation='source-over'; sctx.drawImage(tintCanvas,0,0,w,h,x,y,w,h); }
+    function drawCelestial(P,C){ let obj=null;
+      if(C.sunAbove){ const x=C.sunX*W, y=horizonY-(horizonY*0.02+C.sunArc*horizonY*0.80), r=lerp(26,40,C.sunArc);
+        sctx.globalCompositeOperation='lighter'; const haloR=r*7; sctx.globalAlpha=0.55*clamp(C.sunArc+0.25,0,1); tintDraw(glowSprite,x-haloR,y-haloR,haloR*2,haloR*2,P.light); sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
+        const dg=sctx.createRadialGradient(x,y,0,x,y,r); dg.addColorStop(0,'rgba(255,252,238,1)'); dg.addColorStop(0.6,rgb(P.light,1)); dg.addColorStop(1,rgb([P.light[0]*0.8,P.light[1]*0.6,P.light[2]*0.4],1)); sctx.fillStyle=dg; sctx.beginPath(); sctx.arc(x,y,r,0,7); sctx.fill();
+        obj={x,y,r,tint:P.light,alt:C.sunArc,kind:'sun'}; }
+      if(C.moonAbove){ const x=C.moonX*W, y=horizonY-(horizonY*0.03+C.moonArc*horizonY*0.80), r=lerp(18,26,C.moonArc), moonTint=[214,224,240];
+        sctx.globalCompositeOperation='lighter'; const haloR=r*6; sctx.globalAlpha=0.5*clamp(C.moonArc+0.3,0,1)*clamp(P.starK+0.4,0,1); tintDraw(glowSprite,x-haloR,y-haloR,haloR*2,haloR*2,moonTint); sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
+        const mg=sctx.createRadialGradient(x-r*0.25,y-r*0.25,0,x,y,r); mg.addColorStop(0,'rgba(248,250,255,1)'); mg.addColorStop(0.8,'rgba(206,218,238,1)'); mg.addColorStop(1,'rgba(170,186,214,1)'); sctx.fillStyle=mg; sctx.beginPath(); sctx.arc(x,y,r,0,7); sctx.fill();
+        sctx.globalAlpha=0.14; sctx.fillStyle='#7f8db0'; sctx.beginPath(); sctx.arc(x-r*0.3,y-r*0.15,r*0.22,0,7); sctx.fill(); sctx.beginPath(); sctx.arc(x+r*0.25,y+r*0.2,r*0.16,0,7); sctx.fill(); sctx.beginPath(); sctx.arc(x+r*0.1,y-r*0.35,r*0.1,0,7); sctx.fill(); sctx.globalAlpha=1;
+        if(!obj||C.moonArc>0.05) obj={x,y,r,tint:moonTint,alt:C.moonArc,kind:'moon'}; }
+      return obj; }
+    // ---- silhouettes: the Mokes + ridges + palm frame ----
+    const RIDGE=[46,74,52];
+    function silTint(base,P,haze){ return [lerp(base[0],P.horizon[0],haze),lerp(base[1],P.horizon[1],haze),lerp(base[2],P.horizon[2],haze)]; }
+    function humpPath(cx,w,peakY,baseY){ sctx.beginPath(); sctx.moveTo(cx-w/2,baseY); const steps=26; for(let i=0;i<=steps;i++){ const f=i/steps, x=(cx-w/2)+f*w, y=baseY-(baseY-peakY)*Math.sin(f*Math.PI); sctx.lineTo(x,y); } sctx.lineTo(cx+w/2,baseY); sctx.closePath(); }
+    function paintRidge(P,haze,hFrac,wobble){ const y0=horizonY, t=silTint(RIDGE,P,haze); sctx.fillStyle=rgb([t[0]*0.85,t[1]*0.85,t[2]*0.9]); sctx.beginPath(); sctx.moveTo(0,y0); const n=40, base=y0-horizonY*hFrac;
+      for(let i=0;i<=n;i++){ const f=i/n, w1=Math.sin(f*Math.PI*3.0+haze*10)*wobble*horizonY, w2=Math.sin(f*Math.PI*7.0+haze*4)*wobble*0.4*horizonY, y=base+w1+w2+horizonY*hFrac*0.4*Math.sin(f*Math.PI); sctx.lineTo(f*W,y); } sctx.lineTo(W,y0); sctx.closePath(); sctx.fill(); }
+    function drawLand(P){ const y0=horizonY;
+      paintRidge(P,0.62,0.14,0.020); paintRidge(P,0.55,0.30,0.045);
+      const tint=silTint(RIDGE,P,0.34); sctx.fillStyle=rgb([tint[0]*0.7,tint[1]*0.7,tint[2]*0.75]); humpPath(W*0.42,W*0.20,y0-horizonY*0.115,y0); sctx.fill();  // Moku Nui (larger, left)
+      sctx.fillStyle=rgb([tint[0]*0.62,tint[1]*0.62,tint[2]*0.7]); humpPath(W*0.585,W*0.12,y0-horizonY*0.075,y0); sctx.fill();                            // Moku Iki (smaller, right)
+      const near=silTint(RIDGE,P,0.06); sctx.fillStyle=rgb([near[0]*0.4,near[1]*0.45,near[2]*0.45]);
+      sctx.beginPath(); sctx.moveTo(0,y0); sctx.lineTo(0,y0-horizonY*0.24); sctx.quadraticCurveTo(W*0.10,y0-horizonY*0.14,W*0.18,y0); sctx.closePath(); sctx.fill();
+      sctx.beginPath(); sctx.moveTo(W,y0); sctx.lineTo(W,y0-horizonY*0.20); sctx.quadraticCurveTo(W*0.90,y0-horizonY*0.12,W*0.83,y0); sctx.closePath(); sctx.fill(); }
+    function frond(L,color){ sctx.strokeStyle=rgb(color); sctx.lineWidth=3; sctx.beginPath(); sctx.moveTo(0,0); sctx.quadraticCurveTo(L*0.2,L*0.5,L*0.05,L); sctx.stroke(); sctx.lineWidth=2; const seg=16;
+      for(let i=1;i<seg;i++){ const f=i/seg, bx=L*0.2*4*f*(1-f), by=L*f, len=L*0.16*(1-f*0.5); sctx.beginPath(); sctx.moveTo(bx,by); sctx.lineTo(bx-len*0.6,by+len*0.5); sctx.moveTo(bx,by); sctx.lineTo(bx+len*0.9,by+len*0.4); sctx.stroke(); } }
+    function palmCluster(ox,oy,scale,rot,color){ sctx.save(); sctx.translate(ox,oy); sctx.rotate(rot); const fronds=6, L=H*0.42*scale; for(let i=0;i<fronds;i++){ sctx.save(); sctx.rotate(-0.25+i*0.16); frond(L,color); sctx.restore(); } sctx.restore(); }
+    function drawPalmFrame(){ const dark=[10,16,14]; palmCluster(W*0.02,-10,1.0,-0.2,dark); palmCluster(W*0.985,-14,1.05,Math.PI+0.2,dark); }
+    // ---- sea: base + mirror reflection + glitter + aurora reflection + shimmer ----
+    let mirrorCanvas, mirrorCtx;
+    function ensureMirror(){ if(!mirrorCanvas){ mirrorCanvas=document.createElement('canvas'); mirrorCtx=mirrorCanvas.getContext('2d'); } const w=Math.round(W*DPR), h=Math.round(horizonY*DPR); if(mirrorCanvas.width!==w||mirrorCanvas.height!==h){ mirrorCanvas.width=w; mirrorCanvas.height=h; } }
+    function drawGlitter(P,body,time,seaH){ sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,H-horizonY); sctx.clip(); sctx.globalCompositeOperation='lighter';
+      const bx=body.x, tint=body.tint, long=(body.kind==='sun'&&body.alt<0.35)?1.6:1.0, rows=Math.round(seaH/3);
+      for(let r=0;r<rows;r++){ const dep=r/rows, y=horizonY+dep*seaH, spread=(6+dep*W*0.18*long), specks=Math.round(3+dep*10), rowA=(0.5*(1-dep*0.7))*long;
+        for(let s=0;s<specks;s++){ const rx=bx+(Math.random()*2-1)*spread, fl=0.4+0.6*Math.abs(Math.sin(time*3+rx*0.05+r*0.3)), a=rowA*fl*(0.4+Math.random()*0.6), w=(2+Math.random()*4)*(1+dep*2.2), h=1.2+Math.random()*1.6;
+          sctx.globalAlpha=clamp(a,0,0.9); sctx.fillStyle=rgb([lerp(tint[0],255,0.3),lerp(tint[1],250,0.3),lerp(tint[2],230,0.2)]); sctx.fillRect(rx-w/2,y,w,h); } }
+      const cg=sctx.createLinearGradient(0,horizonY,0,H); cg.addColorStop(0,rgb(tint,0.5)); cg.addColorStop(0.4,rgb(tint,0.12)); cg.addColorStop(1,rgb(tint,0)); sctx.globalAlpha=1; sctx.fillStyle=cg; sctx.fillRect(bx-40,horizonY,80,seaH);
+      sctx.globalCompositeOperation='source-over'; sctx.restore(); }
+    function drawAuroraReflection(P,time,seaH){ sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,seaH*0.7); sctx.clip(); sctx.globalCompositeOperation='lighter';
+      for(let c=0;c<10;c++){ const fx=(c+0.5)/10, x=fx*W+Math.sin(time*0.6+c)*W*0.01, sway=Math.sin(time*1.2+c*1.3)*8, col=c%2?[127,232,169]:[142,160,232], w=W*0.05*(0.5+0.5*Math.abs(Math.sin(time*0.5+c)));
+        const g=sctx.createLinearGradient(0,horizonY,0,horizonY+seaH*0.55); g.addColorStop(0,rgb(col,0.16*P.starK)); g.addColorStop(0.5,rgb(col,0.07*P.starK)); g.addColorStop(1,rgb(col,0)); sctx.fillStyle=g; sctx.fillRect(x-w/2+sway,horizonY,w,seaH*0.55); }
+      sctx.globalCompositeOperation='source-over'; sctx.restore(); }
+    function drawSea(P,body,time){ const seaH=H-horizonY;
+      const g=sctx.createLinearGradient(0,horizonY,0,H); g.addColorStop(0,rgb(P.seaTop)); g.addColorStop(0.5,rgb(lerpRGB(P.seaTop,P.seaDeep,0.5))); g.addColorStop(1,rgb(P.seaDeep)); sctx.fillStyle=g; sctx.fillRect(0,horizonY,W,seaH);
+      if(!S.lite && !reduce){ ensureMirror(); mirrorCtx.setTransform(1,0,0,1,0,0); mirrorCtx.clearRect(0,0,mirrorCanvas.width,mirrorCanvas.height);
+        mirrorCtx.drawImage(scv,0,0,Math.round(W*DPR),Math.round(horizonY*DPR),0,0,mirrorCanvas.width,mirrorCanvas.height);
+        sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,seaH); sctx.clip(); const bands=Math.max(10,Math.round(seaH/6)), bandH=seaH/bands;
+        for(let i=0;i<bands;i++){ const sy=horizonY+i*bandH, srcFrac=i/bands, srcY=horizonY*(1-srcFrac), jitter=Math.sin(time*1.3+i*0.5)*(1+srcFrac*6)+Math.sin(time*0.7+i*0.9)*srcFrac*4, fade=0.55*(1-srcFrac*0.85), smH=Math.max(1,horizonY/bands);
+          sctx.globalAlpha=fade; sctx.drawImage(mirrorCanvas,0,Math.round((srcY-smH)*DPR),mirrorCanvas.width,Math.max(1,Math.round(smH*DPR)),jitter,sy,W,bandH+1); }
+        sctx.restore(); sctx.globalAlpha=1; }
+      if(body && !S.lite && !reduce) drawGlitter(P,body,time,seaH);   // heaviest sea loop + per-frame random: shed under lite, freeze under reduce
+      if(P.starK>0.15 && !reduce) drawAuroraReflection(P,time,seaH);
+      if(!S.lite && !reduce){ sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,seaH); sctx.clip(); sctx.globalCompositeOperation='lighter'; const hl=rgb(P.light,1);
+        for(let i=0;i<60;i++){ const dep=Math.random(), y=horizonY+dep*seaH*0.6, w=(6+Math.random()*40)*(1-dep*0.5), x=Math.random()*W, a=(0.03+Math.random()*0.05)*(1-dep)*(0.6+0.4*Math.sin(time*2+x)); sctx.globalAlpha=a; sctx.fillStyle=hl; sctx.fillRect(x,y,w,1.4); }
+        sctx.globalCompositeOperation='source-over'; sctx.globalAlpha=1; sctx.restore(); }
+      drawRipples(seaH,time);
+      const vg=sctx.createLinearGradient(0,H-seaH*0.4,0,H); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.28)'); sctx.fillStyle=vg; sctx.fillRect(0,H-seaH*0.4,W,seaH*0.4); }
+    function drawHorizonGlow(P){ const g=sctx.createLinearGradient(0,horizonY-6,0,horizonY+8); g.addColorStop(0,rgb(P.light,0)); g.addColorStop(0.5,rgb(P.light,0.35*clamp(1-P.starK*0.6,0.2,1))); g.addColorStop(1,rgb(P.light,0)); sctx.globalCompositeOperation='lighter'; sctx.fillStyle=g; sctx.fillRect(0,horizonY-6,W,14); sctx.globalCompositeOperation='source-over'; }
+    // ---- ripples: a quiet one-shot shimmer where a finger touches the scene (sea or sky) ----
+    let ripples=[];
+    function addRipple(cx,cy){ if(reduce) return; ripples.push({x:cx,y:cy,life:1}); if(ripples.length>8) ripples.shift(); }
+    function drawRipples(seaH,time){ if(!ripples.length) return; sctx.save(); sctx.globalCompositeOperation='lighter';
+      for(const rp of ripples){ const k=rp.life, rad=(1-k)*70+8; sctx.strokeStyle='rgba(200,240,220,'+(0.30*k)+')'; sctx.lineWidth=1.4; sctx.beginPath(); sctx.ellipse(rp.x,rp.y,rad,rad*(rp.y>horizonY?0.32:0.7),0,0,6.2832); sctx.stroke(); }
+      sctx.globalCompositeOperation='source-over'; sctx.restore(); }
+    // ---- the clock: the app owns wall time; Learn borrows the sky per chapter ----
+    let sceneT=0.90;                 // veil opens on deep-night aurora ("Lanikai, after dark")
+    let running=false, started=false, ease=null, lastPaint=0;
+    const DAY_LEN=360;               // seconds for one full accelerated day (fallback pacing)
+    function setTime(t){ sceneT=((t%1)+1)%1; ease=null; }
+    function begin(){ started=true; running=(S.mode==='play'); }         // veil tap: Play drifts; Learn waits for its chapter ease
+    function easeTo(target,dur){ let from=sceneT, to=((target%1)+1)%1, d=to-from; if(d>0.5)d-=1; if(d<-0.5)d+=1; ease={from,delta:d,elapsed:0,dur:Math.max(0.1,dur||3.0)}; running=false; }
+    function release(){ ease=null; running=true; }                        // Play resumes the free-running loop
+    function frame(nowMs,dt){
+      if(reduce){ sceneT=0.76; }                                          // reduced motion: a still golden hour
+      else if(ease){ ease.elapsed+=dt; const u=Math.min(1,ease.elapsed/ease.dur); sceneT=((ease.from+ease.delta*smooth(u))%1+1)%1; if(u>=1) ease=null; }
+      else if(running && started && !document.hidden){ sceneT=(sceneT+dt/DAY_LEN)%1; }
+      for(const rp of ripples) rp.life-=dt*0.6; if(ripples.length) ripples=ripples.filter(r=>r.life>0);
+      // cap the world to ~30fps: it is a calm backdrop and shares the frame with the board
+      if(nowMs-lastPaint < 32 && lastPaint) return; lastPaint=nowMs;
+      draw(nowMs/1000);
     }
-  }
-  function drawAurora(w,h,dt){
-    if(!auroraBlobs.length) return;
-    if(!reduce) auroraT+=dt;                       // reduce-motion: a static wash of light
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    for(const b of auroraBlobs){
-      const bw=w*b.scale, bh=h*0.42*b.scale;       // wide and short: a ribbon of light, not a spotlight
-      const cx=w*(0.5 + b.ampX*Math.sin(auroraT*b.spd+b.phX));
-      const cy=h*(b.baseY + b.ampY*Math.sin(auroraT*b.spd*0.7+b.phY));
-      const rot=0.12*Math.sin(auroraT*b.spd*0.5+b.phR);
-      ctx.setTransform(DPR,0,0,DPR,0,0); ctx.translate(cx,cy); ctx.rotate(rot);
-      ctx.drawImage(b.canvas,-bw/2,-bh/2,bw,bh);
-    }
-    ctx.restore();
-  }
+    function draw(time){ if(!W) return; const P=paletteAt(sceneT), C=celestial(sceneT);
+      drawSky(P); drawStars(P,time); drawAurora(P,time); drawClouds(P,time); drawBirds(P,time); const body=drawCelestial(P,C); drawLand(P); drawHorizonGlow(P);
+      drawSea(P,body,time); drawPalmFrame(); }
+    return { resize, frame, begin, easeTo, release, setTime, addRipple, horizon:()=>horizonY, _t:()=>sceneT };
+  })();
 
   /* ---------------- peg sprite (luminous points, cached per radius) ---------------- */
   let pegSprites={};
@@ -782,12 +1005,11 @@
   }
 
   function draw(dt){
+    // The board canvas is transparent now: the frosted-glass cabinet and the Scene behind it are the
+    // backdrop. We paint only the machine — pegs, marbles, histogram, bell — over the glass.
     const {w,h}=geoRoot; ctx.clearRect(0,0,w,h);
-    drawAurora(w,h,dt||0);
-    for(const d of dust){ ctx.fillStyle='rgba(200,230,240,'+d.a+')'; ctx.beginPath(); ctx.arc(d.x*w,d.y*h,d.r,0,6.2832); ctx.fill(); }
     for(const b of boards) drawBoard(b);
-    if(boards.length>1){ const x=boards[1].geo.x0-geoRoot.gap/2; ctx.strokeStyle='rgba(245,238,224,0.10)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,10); ctx.lineTo(x,h-10); ctx.stroke(); }
-    const vg=ctx.createRadialGradient(w/2,h*0.42,h*0.3,w/2,h*0.5,h*0.85); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.28)'); ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
+    if(boards.length>1){ const x=boards[1].geo.x0-geoRoot.gap/2; ctx.strokeStyle='rgba(200,220,245,0.14)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,10); ctx.lineTo(x,h-10); ctx.stroke(); }
   }
   function drawBoard(board){
     const g=board.geo, n=S.rows; if(!g.w) return;
@@ -817,13 +1039,15 @@
 
     // bell curve — the shape a NAIVE analyst predicts (binomial mean/sd for THIS board's bias).
     // Under momentum or wild it stops matching: marbles spill past it, and that gap IS the fat tail.
-    if(S.showBell && board.total>0){
+    // Always drawn as a faint ghost so the theory is a permanent reference; the Bell toggle just brightens it.
+    if(board.total>0){
+      const gk = S.showBell? 1 : 0.26;
       const mean=n*board.bias, sd=Math.sqrt(Math.max(1e-6, n*board.bias*(1-board.bias))), norm=1/(sd*Math.sqrt(2*Math.PI));
       const pts=[]; for(let bx=lo-0.5; bx<=hi+0.5; bx+=0.12){ const val=board.total*norm*Math.exp(-0.5*((bx-mean)/sd)*((bx-mean)/sd)); let y=g.binBottom-hOf(val); if(y<g.binTop-4) y=g.binTop-4; pts.push([binX(board,bx),y]); }
       ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0][0],g.binBottom); for(const p of pts) ctx.lineTo(p[0],p[1]); ctx.lineTo(pts[pts.length-1][0],g.binBottom); ctx.closePath();
-      const fg=ctx.createLinearGradient(0,g.binTop,0,g.binBottom); fg.addColorStop(0,'rgba(255,235,205,0.12)'); fg.addColorStop(1,'rgba(255,235,205,0)'); ctx.fillStyle=fg; ctx.fill(); ctx.restore();
+      const fg=ctx.createLinearGradient(0,g.binTop,0,g.binBottom); fg.addColorStop(0,'rgba(255,235,205,'+(0.12*gk)+')'); fg.addColorStop(1,'rgba(255,235,205,0)'); ctx.fillStyle=fg; ctx.fill(); ctx.restore();
       ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(const p of pts) ctx.lineTo(p[0],p[1]);
-      ctx.strokeStyle='rgba(255,238,210,0.7)'; ctx.lineWidth=2; ctx.shadowColor='rgba(255,238,210,0.45)'; ctx.shadowBlur=7; ctx.stroke(); ctx.restore();
+      ctx.strokeStyle='rgba(255,238,210,'+(0.7*gk)+')'; ctx.lineWidth=2; ctx.shadowColor='rgba(255,238,210,'+(0.45*gk)+')'; ctx.shadowBlur=7; ctx.stroke(); ctx.restore();
     }
 
     // histogram — marble stacks (linear) or clean bars (log)
@@ -915,6 +1139,7 @@
   function frame(now){ const ms=now-lastT; let dt=ms/1000; lastT=now; if(dt>0.05) dt=0.05;
     // adaptive quality: if frames run long, shed the juice (trails, bounce) until it recovers
     if(ms<250){ ftAvg=ftAvg*0.9+ms*0.1; if(ftAvg>22) S.lite=true; else if(ftAvg<17) S.lite=false; }
+    Scene.frame(now,dt);         // paint the world (own canvas, self-capped ~30fps)
     tick(dt); requestAnimationFrame(frame);
   }
 
@@ -932,7 +1157,7 @@
   document.getElementById('reset').addEventListener('click',()=>{ buildBoards(); setInsight('Cleared. One ball is a mystery. A thousand make a hill.',''); });
 
   toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers show how many <b>paths</b> reach each bin. Lots of ways to the middle. Only <b>one</b> way to each edge.',''); });
-  document.getElementById('sound').addEventListener('click',function(){ S.sound=!S.sound; this.setAttribute('aria-pressed',S.sound?'true':'false'); if(S.sound){ ensureAudio(); startAmbient(); } else stopAmbient(); });
+  document.getElementById('musicbtn').addEventListener('click',function(){ firstTouch(); setMusic(!S.music); });
 
   // Options / Lab are ONE accordion: opening a panel closes its sibling; tapping the open one closes it.
   // (The old independent toggles let both panels stack open at once.)
@@ -1096,8 +1321,13 @@
     next.disabled = !isWatch && !learn.doneNow;
     next.classList.toggle('pulse', !isWatch && learn.doneNow);
   }
+  // Learn borrows the sky: each chapter eases the day clock to its hour, so finishing the journey
+  // feels like one whole day passing — dawn through the aurora-lit two-tails finale. Play hands the
+  // clock back to the free-running loop (exitLearn -> Scene.release).
+  const CHAPTER_SKY=[0.22, 0.40, 0.52, 0.71, 0.90, 0.95];   // sunrise -> morning -> noon -> golden -> night -> deep night
   function gotoChapter(i){
     learn.idx=Math.max(0,Math.min(CHAPTERS.length-1,i)); learn.phase='watch'; learn.doneNow=false;
+    Scene.easeTo(CHAPTER_SKY[learn.idx]!=null?CHAPTER_SKY[learn.idx]:0.5, 4.0);
     stageClear(); stopModes();
     const ch=CHAPTERS[learn.idx]; ch.setup(); if(ch.demo) ch.demo();
     renderLearn(); document.getElementById('dock').scrollTop=0; saveProgress();
@@ -1121,7 +1351,9 @@
   }
   function exitLearn(){
     stageClear(); learn.active=false; learn.phase='watch'; learn.doneNow=false;
-    S.mode='play'; appEl.classList.remove('learn');
+    fairRig(); buildBoards();   // Play is always the fresh sandbox: never leak a chapter's rig (compare/wild/bias) into it
+    S.mode='play'; appEl.classList.remove('learn'); Scene.release();   // hand the sky back to the free-running day
+
     document.getElementById('modelearn').setAttribute('aria-pressed','false');
     document.getElementById('modeplay').setAttribute('aria-pressed','true');
     setInsight('The whole machine is yours now. Drop, pour, make it rain. Open the <b>Lab</b> to bend the rules.','');
@@ -1142,10 +1374,13 @@
   const PKEY='plink.progress.v1';
   function saveProgress(){ try{ localStorage.setItem(PKEY, JSON.stringify({ v:1, lastMode:S.mode, chapter:learn.idx,
     completed:CHAPTERS.map((c,i)=>!!learn.completed[i]),
+    audio:{ music:S.music, sfx:S.sfx },
     levers:{ rows:S.rows, bias:S.bias, momentum:S.momentum, wild:S.wild, logScale:S.logScale, compare:S.compare } })); }catch(e){} }
   function initLearn(){
     let p=null; try{ p=JSON.parse(localStorage.getItem(PKEY)||'null'); }catch(e){}
     if(!p || p.v!==1) return;
+    if(p.audio){ S.music=p.audio.music!==false; S.sfx=p.audio.sfx!==false;   // default ON when the field is absent
+      const mb=document.getElementById('musicbtn'); if(mb) mb.setAttribute('aria-pressed',S.music?'true':'false'); }
     if(Array.isArray(p.completed)) p.completed.forEach((v,i)=>{ if(v && i<CHAPTERS.length) learn.completed[i]=true; });
     learn.idx=Math.max(0,Math.min(CHAPTERS.length-1, p.chapter|0));
     if(p.lastMode==='learn') enterLearn(learn.idx);   // resume the story where they left off
@@ -1159,9 +1394,23 @@
   // (measure + layoutAll, never buildBoards) so the histograms survive a rotate/toggle.
   function remeasure(){ measure(); layoutAll(); }
   if('ResizeObserver' in window){ new ResizeObserver(remeasure).observe(cvs.parentElement); }
-  window.addEventListener('resize', remeasure);
-  window.addEventListener('orientationchange', remeasure);
-  measure(); makeAuroraBlobs(); buildBoards(); initLearn(); requestAnimationFrame(frame);
+  window.addEventListener('resize', ()=>{ remeasure(); Scene.resize(); });
+  window.addEventListener('orientationchange', ()=>{ remeasure(); Scene.resize(); });
+  // returning to the tab: resume the audio context (the day clock self-pauses while hidden)
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && AC && AC.state==='suspended') AC.resume(); });
+
+  // touch ripples on the exposed scene (taps fall through the grid gaps to the #scene canvas)
+  document.getElementById('scene').addEventListener('pointerdown', e=>{ Scene.addRipple(e.clientX, e.clientY); });
+
+  // landing veil: the tap-to-begin unlocks audio (browser autoplay gate) and starts the accelerated day
+  const veilEl=document.getElementById('veil');
+  function dismissVeil(){ if(!veilEl || veilEl.classList.contains('gone')) return;
+    firstTouch(); ensureAudio(); if(S.music) startMusic(); Scene.begin();
+    veilEl.classList.add('gone'); setTimeout(()=>{ if(veilEl.parentNode) veilEl.remove(); }, 1000); }
+  veilEl.addEventListener('pointerdown', dismissVeil);
+  window.addEventListener('keydown', e=>{ if((e.key==='Enter'||e.key===' ') && veilEl && !veilEl.classList.contains('gone')){ e.preventDefault(); dismissVeil(); } });
+
+  measure(); Scene.resize(); buildBoards(); initLearn(); requestAnimationFrame(frame);
 
   // === ARCHITECTURE (Lever 4, side-by-side) ===
   // State + geometry + effects now live on a Board object (makeBoard). `boards` holds one machine
