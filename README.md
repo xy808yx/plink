@@ -12,9 +12,9 @@ Plink is a single, self-contained HTML file: an interactive [Galton board](https
 
 ## A calm place to think
 
-Plink is set in a painted dreamscape of **Lanikai, Hawaii**: a night sky with an aurora over the Mokulua islets, a reflecting sea, and a day that passes on its own while you play, drifting through dawn, bright turquoise noon, a burning golden hour, and back to the aurora-lit night. The board floats on a pane of frosted glass over that world. A quiet tap-to-begin opens the app and (optionally) fades in a soft background track. In **Learn** mode the sky follows the story: each chapter eases the light to its own hour, so finishing the journey feels like watching one whole day pass, ending under the northern lights.
+Plink is set in a painted island dreamscape: a night sky with an aurora over two islets rising from a mirror-calm sea, and a day that passes on its own while you play, drifting through dawn, bright turquoise noon, a burning golden hour, and back to the aurora-lit night. The board floats on a pane of frosted glass over that world. A quiet tap-to-begin opens the app and (optionally) fades in a soft background track. In **Learn** mode the sky follows the story: each chapter eases the light to its own hour, so finishing the journey feels like watching one whole day pass, ending under the northern lights. A **Zen** button dissolves the board so you can just watch the world, with optional fireworks blooming over the water.
 
-The soundtrack is an optional sidecar. Drop a file named `theme.mp3` next to `index.html` and it loops seamlessly behind the marbles (with the pentatonic *plinks* tuned to sit on top). With no file present, the app is simply quiet.
+The soundtrack is a sidecar file, `theme.mp3` next to `index.html`, that loops seamlessly behind the marbles (with the pentatonic *plinks* tuned to sit on top). Swap it for your own track, or delete it and the app is simply quiet.
 
 ## Learn mode: a story for kids
 

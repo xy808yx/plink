@@ -59,18 +59,24 @@ The whole app is one IIFE in `index.html`. Grep for these markers:
   array (copy + `setup`/`demo`/`tinkerSetup`/`begin`/`ready` per chapter), and the `learn`
   controller (`active/idx/phase/doneNow/completed/moved`).
 
-## The world (Lanikai rebuild — "Push A")
+## The world (the island rebuild — "Push A")
 
 The old black-stage/aurora-blob look was fully replaced (J: "still ugly as hell") with a zen,
-drawaurora.com-style day/night dreamscape of Lanikai, Hawaii. Spec:
+drawaurora.com-style island day/night dreamscape. The real-world referent is a specific Hawaiian
+beach and its twin islets (the Mokes), but that **place name is deliberately never surfaced
+anywhere** (J: "it should just be known") — copy, comments, and docs say "the islands" / "the
+Mokes", not the town. Spec:
 `~/.claude/plans/still-ugly-as-hell-dapper-comet.md`. Adapted from a 3-way scene-engine competition
 (Scene B won: mirror-reflected sea + aurora). Key seams:
 
 - **`Scene` IIFE** (grep `==================== SCENE`): a full-bleed fixed background canvas `#scene`
   (`z-index:0`) painting a keyframe day/night sky, celestial arc (sun by day, moon by night), the
-  two **Mokulua islets** (Moku Nui larger-left, Moku Iki right) as haze-tinted silhouettes, palm
-  frame, and a **mirror-reflected sea** (samples `scv` each paint, flips it in banded, plus a
-  moonglitter path + night aurora-reflection columns). `KEYS[]` is the phase color table
+  **two twin islands (the Mokes)** — Moku Nui larger-left, Moku Iki right — rendered by
+  `islePoints`/`isleColor`/`fillIsle`/`rimIsle` in `drawLand` as CLEAR dark silhouettes (island
+  colour is a darkened tint of the sky right above the sea, so they read against any hour) with a
+  lit crest rim, above one faint far-shore ridge; and a **mirror-reflected sea** (samples `scv` each
+  paint, flips it in banded, plus a moonglitter path + night aurora-reflection columns). The old
+  line-drawn palm frame was DELETED (read as a "spiderweb" — first thing to go). `KEYS[]` is the phase color table
   (Night/Dawn/Sunrise/Day/Golden/Dusk/Night). Public API: `resize/frame/begin/easeTo/release/
   setTime/addRipple`. Pre-render-once/blit pattern like the marble sprites; the reflection band loop
   + shimmer are the only per-paint heavy work.
@@ -99,7 +105,34 @@ drawaurora.com-style day/night dreamscape of Lanikai, Hawaii. Spec:
   `chord` mixed on top (`sfxBus`). `S.music`/`S.sfx` replaced the old `S.sound`; music defaults ON,
   persisted in `plink.progress.v1` `audio:{music,sfx}` (default ON when the field is absent). The old
   synthesized sea pad (`startAmbient`) is GONE. Missing `theme.mp3` = graceful silence, plinks still
-  work. `#musicbtn` (interim, in the Options row) toggles via `setMusic`.
+  work. `#musicbtn` (interim, in the Options row) toggles via `setMusic`. **A real `theme.mp3` now
+  ships** (24.6s stereo loop J supplied); the crossfade loop (`XFADE=2.0`) covers the seam.
+
+## Push B follow-ups (zen mode, fireworks, clear Mokes)
+
+- **Zen (watch mode).** A `#zen` button in the Options row enters a drawaurora-style watch mode:
+  `body.zen` fades the whole `.app` control layer to `opacity:0` (with `pointer-events:none` on the
+  chrome so taps fall through to `#scene`), leaving only the living scene. A floating `#zenbar` pill
+  (`z-index:40`) carries a **Fireworks** toggle + **Exit**; it auto-`.idle`-fades after ~4.2s of
+  stillness and returns on `pointermove`/tap (`zenWake`). `enterZen` calls `stopModes()` so nothing
+  pours behind the curtain; `exitZen` turns fireworks off. Escape exits. `#zen` is `grid-column:1/-1`
+  (full-width in both dock grids); it lives only in Play's Options, so Learn never shows it.
+- **Fireworks** (inside the `Scene` IIFE; public `Scene.setFireworks(on)`): `launchRocket` sends a
+  rocket up from the horizon, `burst` sprays ~46-88 **pre-rendered glow-dot sparks** (`fwSprite`
+  cache, one soft radial per colour, saturated purple/green/gold/pink with a small hot core — the
+  drawaurora dot look, NOT streaks), `updateFireworks(dt)` runs gravity/drag/fade, `drawFireworks`
+  blits additively. Drawn **before `drawSea`** so the mirror-calm water reflects every bloom. `dt`
+  comes from `time-lastDrawT` inside `Scene.draw` (tied to the 30fps-capped paint, so it pauses with
+  the tab). Sparks self-cap at 1000. Fireworks only auto-launch while `fwOn` (the zen toggle).
+- **Clear Mokes.** The two islands were muddy bumps behind a tall ridge; now they are the hero
+  silhouettes on an open horizon (see the `Scene` bullet above). If you re-tune, keep them clearly
+  darker than the sky at EVERY hour (that is what `isleColor` guarantees) and keep a visible water
+  gap between them.
+- **Deferred (next phase): the scene still reads "90s" to J.** The remaining offenders are the
+  **aurora vertical banding** (`makeAuroraSprite` hard vertical streaks), the **pixelated sun/moon
+  glitter beam** (`drawGlitter`), and the **banded mirror reflection** (`drawSea`). A fuller
+  drawaurora-grade aesthetic pass (flatter, softer, layered) is planned and was explicitly deferred
+  by J; the Push B work above shipped on top of the interim scene.
 
 ## The four levers (all in Lab mode)
 
