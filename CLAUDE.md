@@ -128,11 +128,31 @@ Mokes", not the town. Spec:
   silhouettes on an open horizon (see the `Scene` bullet above). If you re-tune, keep them clearly
   darker than the sky at EVERY hour (that is what `isleColor` guarantees) and keep a visible water
   gap between them.
-- **Deferred (next phase): the scene still reads "90s" to J.** The remaining offenders are the
-  **aurora vertical banding** (`makeAuroraSprite` hard vertical streaks), the **pixelated sun/moon
-  glitter beam** (`drawGlitter`), and the **banded mirror reflection** (`drawSea`). A fuller
-  drawaurora-grade aesthetic pass (flatter, softer, layered) is planned and was explicitly deferred
-  by J; the Push B work above shipped on top of the interim scene.
+- **Painterly scene pass (DONE, the "90s" fix).** The three offenders were rebuilt drawaurora-grade,
+  all soft and pre-rendered, verified across every hour + a clean 4-dimension adversarial review:
+  - **Aurora** (`makeAuroraSprite` + `drawAurora`): the hard vertical streaks are gone. It is now a
+    soft continuous CURTAIN of dense overlapping radial dabs along a waving sine spine, tint walking
+    **green -> teal -> violet** across x, with faint vertical drapes, all melted smooth by a heavy
+    1/6 downscale/upscale blur. Blitted `lighter` into the **upper-LEFT third only** (right side stays
+    dark and empty), **night-only** (gated by `starK`), alpha `starK*0.8`. It is now a **user TOGGLE**
+    (`S.aurora`, default ON): the `#aurorabtn` in Options + the `#zenaurora` pill in the zenbar both
+    call `setAurora` (kept in sync), persisted in progress `scene:{aurora}`. Forced OFF under `S.lite`;
+    drift frozen under `reduce`. NOTE: the moon HALO was shrunk (`r*3.6`, alpha 0.32) and **night
+    clouds fade out** (`drawClouds` scales alpha by `1-starK*0.9`) so the dark sky lets the aurora read.
+  - **Glitter beam** (`drawGlitter`): the blocky `fillRect` specks are gone. Now a feathered trapezoid
+    light column (widening with depth, `body.tint`) plus a few soft elongated GLINT dabs (`glintSprite`,
+    blitted `lighter`, jittered). Glints skipped under `S.lite`; phase frozen under `reduce`.
+  - **Sea reflection** (`drawSea`): the venetian-blind band loop is gone. Now ONE soft flipped blit:
+    capture the sky+land band into `mirrorCanvas` (**source rect is DEVICE px** `W*DPR x horizonY*DPR`,
+    dest is CSS px — the DPR gotcha), cheap-blur via `blurCanvas` (1/4 downscale), blit flipped once
+    with `translate(_,horizonY*2)+scale(1,-1)` at alpha 0.42 + a gentle wobble/squash + a horizon haze
+    wash. Skipped entirely under `S.lite` (base gradient + haze + glitter still pretty).
+  - **Layered hills** (`drawLand` + `LAYERS`/`ridgeProfile`/`drawRidge`): the single far ridge became
+    THREE receding sine-profile ridges behind the Mokes, each `RIDGE` lerped toward `P.horizon` by a
+    per-layer haze then darkened (aerial perspective: far = palest/hazier, near = darkest), each with a
+    soft LIT-RIM band (a `lighter` `P.light` wash clipped to the crest, not a 1px stroke). The two hero
+    Mokes still sit in front, darkest, with `rimIsle`. `nui`/`iki`/`ridgeProfiles` are cached in
+    `resize()` (never per frame). Far ridge + rims drop under `S.lite`.
 
 ## The four levers (all in Lab mode)
 
