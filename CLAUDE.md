@@ -74,7 +74,7 @@ Mokes", not the town. Spec:
   **two twin islands (the Mokes)** — Moku Nui larger-left, Moku Iki right — rendered by
   `islePoints`/`isleColor`/`fillIsle`/`rimIsle` in `drawLand` as CLEAR dark silhouettes (island
   colour is a darkened tint of the sky right above the sea, so they read against any hour) with a
-  lit crest rim, above one faint far-shore ridge; and a **mirror-reflected sea** (samples `scv` each
+  lit crest rim, alone on an open horizon (no ridges behind them); and a **mirror-reflected sea** (samples `scv` each
   paint, flips it in banded, plus a moonglitter path + night aurora-reflection columns). The old
   line-drawn palm frame was DELETED (read as a "spiderweb" — first thing to go). `KEYS[]` is the phase color table
   (Night/Dawn/Sunrise/Day/Golden/Dusk/Night). Public API: `resize/frame/begin/easeTo/release/
@@ -147,12 +147,12 @@ Mokes", not the town. Spec:
     dest is CSS px — the DPR gotcha), cheap-blur via `blurCanvas` (1/4 downscale), blit flipped once
     with `translate(_,horizonY*2)+scale(1,-1)` at alpha 0.42 + a gentle wobble/squash + a horizon haze
     wash. Skipped entirely under `S.lite` (base gradient + haze + glitter still pretty).
-  - **Layered hills** (`drawLand` + `LAYERS`/`ridgeProfile`/`drawRidge`): the single far ridge became
-    THREE receding sine-profile ridges behind the Mokes, each `RIDGE` lerped toward `P.horizon` by a
-    per-layer haze then darkened (aerial perspective: far = palest/hazier, near = darkest), each with a
-    soft LIT-RIM band (a `lighter` `P.light` wash clipped to the crest, not a 1px stroke). The two hero
-    Mokes still sit in front, darkest, with `rimIsle`. `nui`/`iki`/`ridgeProfiles` are cached in
-    `resize()` (never per frame). Far ridge + rims drop under `S.lite`.
+  - **Layered hills (REMOVED).** The painterly pass briefly added three receding sine-profile ridges
+    behind the Mokes, but their crests read as extra islands (J: "there are 4 islands, we only want
+    the 2 Mokes"), so `LAYERS`/`ridgeProfile`/`drawRidge`/`ridgeProfiles` were deleted. `drawLand`
+    now paints ONLY the two Mokes on an open horizon (the authentic view: two offshore islets on open
+    ocean). `RIDGE` stays — it is the land-green tint mixed into `isleColor`. If depth ever feels thin,
+    add FLAT atmospheric haze at the horizon, never island-shaped humps. `nui`/`iki` cached in `resize()`.
 
 ## The four levers (all in Lab mode)
 

@@ -29,7 +29,7 @@
     --aurora:#7FE8A9; --aurora-deep:#4FC98A; --peri:#8EA0E8;
     --font: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
-    --display: "Hoefler Text", "Iowan Old Style", "Palatino", Georgia, "Times New Roman", serif;  /* veil title + big moments only */
+    --display: ui-serif, "New York", "Iowan Old Style", "Palatino", Georgia, "Times New Roman", serif;  /* veil wordmark only: the platform serif (New York on Apple) */
     /* one spacing/shape/motion vocabulary for the whole control chrome (Astra "instrument" restraint) */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
     --r-ctl:12px; --r-card:16px;
@@ -59,10 +59,8 @@
     transition:opacity .9s ease; }
   .veil.gone{ opacity:0; pointer-events:none; }
   .veil-inner{ padding:0 24px; transform:translateY(-5vh); }
-  .veil-kicker{ font-size:12.5px; letter-spacing:.34em; text-transform:uppercase; color:var(--aurora);
-    font-weight:700; margin:0 0 16px; opacity:.92; }
-  .veil-title{ font-family:var(--display); font-weight:600; font-size:clamp(66px,17vw,150px); font-style:italic;
-    line-height:.9; margin:0; letter-spacing:.005em; color:var(--ink);
+  .veil-title{ font-family:var(--display); font-weight:650; font-size:clamp(66px,17vw,150px); font-style:normal;
+    line-height:.9; margin:0; letter-spacing:-.015em; color:var(--ink);
     text-shadow:0 2px 44px rgba(127,232,169,.30), 0 1px 4px rgba(0,0,0,.45); }
   .veil-cta{ margin:28px 0 0; font-size:14px; font-weight:600; letter-spacing:.05em; color:var(--ink-dim);
     animation:breathe 3.2s ease-in-out infinite; }
@@ -303,7 +301,6 @@
 <canvas id="scene"></canvas>
 <div class="veil" id="veil">
   <div class="veil-inner">
-    <p class="veil-kicker">the islands, after dark</p>
     <h1 class="veil-title">Plink</h1>
     <p class="veil-cta" id="veilcta">tap anywhere to begin</p>
   </div>
@@ -877,7 +874,7 @@
       return { sunX, sunArc, sunAbove, moonX, moonArc, moonAbove }; }
     // ---- offscreen pre-renders (built once per resize, blitted every frame) ----
     let starSprite, auroraSprite, glowSprite, cloudSprite, tintCanvas, glintSprite;
-    let nui, iki, ridgeProfiles;    // land geometry, cached once per resize (never per frame)
+    let nui, iki;    // land geometry: the two Mokes, cached once per resize (never per frame)
     function canvas(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,w|0); c.height=Math.max(1,h|0); return c; }
     function makeRadial(size,inner,outer){ const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); const r=size/2;
       const gr=g.createRadialGradient(r,r,0,r,r,r); gr.addColorStop(0,inner); gr.addColorStop(1,outer); g.fillStyle=gr; g.beginPath(); g.arc(r,r,r,0,7); g.fill(); return c; }
@@ -934,10 +931,9 @@
       // sea reflection offscreens (CSS-px, NOT DPR-scaled): mirror captures the sky band, blur softens it
       mirrorCanvas=canvas(W,horizonY); mctx=mirrorCanvas.getContext('2d');
       blurCanvas=canvas(Math.max(2,W>>2),Math.max(2,horizonY>>2)); blurCtx=blurCanvas.getContext('2d');
-      // land geometry, computed once: the two hero islands + three receding ridge profiles behind them
+      // land geometry, computed once: the two hero islands (the Mokes) alone on an open horizon
       const NUIx=W*0.44, NUIw=Math.min(W*0.20,280), NUIh=horizonY*0.205, IKIx=W*0.61, IKIw=Math.min(W*0.115,150), IKIh=horizonY*0.135;
       nui=islePoints(NUIx,NUIw,NUIh,horizonY,-0.7); iki=islePoints(IKIx,IKIw,IKIh,horizonY,0.55);
-      ridgeProfiles=LAYERS.map(L=>ridgeProfile(L.seed,horizonY-horizonY*L.rise,horizonY*L.amp));
       buildTwinkles(); if(!birds.length) buildBirds(); if(!clouds.length) buildClouds(); }
     // ---- sky band draw helpers (order matters: the sea samples this band) ----
     function drawSky(P){ const g=sctx.createLinearGradient(0,0,0,horizonY); g.addColorStop(0,rgb(P.zenith)); g.addColorStop(0.55,rgb(P.mid)); g.addColorStop(1,rgb(P.horizon)); sctx.fillStyle=g; sctx.fillRect(0,0,W,horizonY); }
@@ -969,25 +965,8 @@
         sctx.globalAlpha=0.14; sctx.fillStyle='#7f8db0'; sctx.beginPath(); sctx.arc(x-r*0.3,y-r*0.15,r*0.22,0,7); sctx.fill(); sctx.beginPath(); sctx.arc(x+r*0.25,y+r*0.2,r*0.16,0,7); sctx.fill(); sctx.beginPath(); sctx.arc(x+r*0.1,y-r*0.35,r*0.1,0,7); sctx.fill(); sctx.globalAlpha=1;
         if(!obj||C.moonArc>0.05) obj={x,y,r,tint:moonTint,alt:C.moonArc,kind:'moon'}; }
       return obj; }
-    // ---- silhouettes: three receding ridges (aerial perspective) behind the twin islands (the Mokes) ----
+    // island tint: a touch of land-green mixed into each Moke silhouette so it reads as land, not just dark sky
     const RIDGE=[46,74,52];
-    // far -> near. rise = crest height above horizon (frac of horizonY), amp = crest wobble (frac),
-    // haze = how far the fill lerps toward the horizon sky (far = palest, nearly dissolved),
-    // dark = darken factor (near = darkest), rimA = crispness of the soft lit crest rim.
-    const LAYERS=[
-      { seed:1.3, rise:0.02,  amp:0.05, haze:0.72, dark:1.06, rimA:0.10 },
-      { seed:3.4, rise:0.00,  amp:0.09, haze:0.46, dark:0.86, rimA:0.14 },
-      { seed:6.1, rise:-0.03, amp:0.13, haze:0.26, dark:0.62, rimA:0.18 },
-    ];
-    function ridgeProfile(seed,baseY,amp){ const pts=[], N=48;
-      for(let i=0;i<=N;i++){ const x=(i/N)*W, y=baseY-amp*(0.6*Math.sin(x*0.006+seed)+0.4*Math.sin(x*0.013+seed*1.7)); pts.push([x,y]); }
-      return pts; }
-    function drawRidge(pts,fill,P,rimA){ sctx.beginPath(); sctx.moveTo(0,horizonY+2); for(const p of pts) sctx.lineTo(p[0],p[1]); sctx.lineTo(W,horizonY+2); sctx.closePath();
-      sctx.fillStyle=rgb(fill); sctx.fill();
-      if(rimA>0){ sctx.save(); sctx.clip(); sctx.globalCompositeOperation='lighter';   // soft lit rim: a thin light wash down from this ridge's highest point (not a hard 1px stroke)
-        let top=Infinity; for(const p of pts) if(p[1]<top) top=p[1];
-        const rg=sctx.createLinearGradient(0,top,0,top+16); rg.addColorStop(0,rgb(P.light,rimA)); rg.addColorStop(1,rgb(P.light,0));
-        sctx.fillStyle=rg; sctx.fillRect(0,top,W,18); sctx.restore(); sctx.globalCompositeOperation='source-over'; } }
     // Twin-island profile: a rounded dome with one higher shoulder and a lightly craggy crest, so
     // each Moke reads as a distinct island sitting in open water. Points are computed once, then
     // reused for the fill and a thin crest rim so the two never blur into the sky or each other.
@@ -1006,12 +985,7 @@
     function rimIsle(pts,P){ sctx.save(); sctx.globalCompositeOperation='lighter'; sctx.strokeStyle=rgb(P.light,0.2); sctx.lineWidth=1.3; sctx.lineJoin='round';
       sctx.beginPath(); sctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) sctx.lineTo(pts[i][0],pts[i][1]); sctx.stroke(); sctx.restore(); }
     function drawLand(P){
-      // three receding ridges, farthest first. Fill is RIDGE lerped toward the horizon sky by haze
-      // (aerial perspective) then darkened, so each stays darker than the sky yet carries its colour.
-      LAYERS.forEach((L,k)=>{ if(S.lite && k===0) return;                         // drop the palest far ridge on weak phones
-        const fill=lerpRGB(RIDGE,P.horizon,L.haze).map(v=>v*L.dark);
-        drawRidge(ridgeProfiles[k],fill,P,S.lite?0:L.rimA); });
-      // the two hero islands in front, darkest of all, with their lit crest rim
+      // just the two Mokes on an open horizon: darkest of all, each with its soft lit crest rim
       fillIsle(nui,horizonY,isleColor(P,0.34)); fillIsle(iki,horizonY,isleColor(P,0.30));
       rimIsle(nui,P); rimIsle(iki,P); }
     // ---- sea: base gradient + one soft blurred reflection + a soft glitter beam + ripples ----
@@ -1092,7 +1066,7 @@
         const tw=0.75+0.25*Math.sin(time*11+s.x*0.3), sz=(2.4+4.2*k); sctx.globalAlpha=k*tw; const g2=fwSprite(s.col); sctx.drawImage(g2,s.x-sz,s.y-sz,sz*2,sz*2); }
       sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over'; sctx.restore(); }
     // ---- the clock: the app owns wall time; Learn borrows the sky per chapter ----
-    let sceneT=0.90;                 // veil opens on deep-night aurora (the islands, after dark)
+    let sceneT=0.90;                 // veil opens on the deep-night sky (aurora hour)
     let running=false, started=false, ease=null, lastPaint=0;
     const DAY_LEN=360;               // seconds for one full accelerated day (fallback pacing)
     function setTime(t){ sceneT=((t%1)+1)%1; ease=null; }
