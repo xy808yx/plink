@@ -288,6 +288,48 @@
   .zenbar .zlabel{ font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; padding-right:2px; }
   .zenbar button{ min-height:40px; padding:9px 16px; }
 
+  /* MINIMAL mode: the big dock is replaced by one slim always-there icon bar pinned to the bottom.
+     The bar never fully leaves (it just dims when idle, drawaurora-style); the large Options / Lab
+     panels pop up above it as sheets that slide away when dismissed. */
+  body.minimal .dock{ display:none; }
+  body.minimal .app{ padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px)); }   /* clear the fixed bar so the insight never sits under it */
+  body.minimal .topbar .plaque, body.minimal .topbar .legend{ display:none; }   /* trim the header to its essentials */
+  .minibar{ position:fixed; z-index:45; left:50%; bottom:max(10px,env(safe-area-inset-bottom)); transform:translateX(-50%);
+    display:none; align-items:center; gap:3px; padding:6px;
+    background:var(--glass); backdrop-filter:blur(16px) saturate(1.08); -webkit-backdrop-filter:blur(16px) saturate(1.08);
+    border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow-card);
+    transition:opacity .55s var(--ease-settle); max-width:96vw; }
+  body.minimal .minibar{ display:flex; }
+  body.zen .minibar, body.zen .minisheet{ display:none !important; }   /* zen has its own pill; the minibar steps aside */
+  .minibar.dim{ opacity:.32; }                          /* idle: fades back but stays put and tappable */
+  .minibar .mi{ min-height:44px; min-width:44px; padding:0; border-radius:13px; background:transparent;
+    border:1px solid transparent; color:var(--ink-dim); box-shadow:none; }
+  .minibar .mi:hover{ background:var(--surface); color:var(--ink); }
+  .minibar .mi[aria-pressed="true"]{ background:var(--surface-2); color:var(--aurora);
+    border-color:color-mix(in srgb, var(--aurora) 45%, transparent); box-shadow:none; }
+  .minibar .mi.primary{ color:#2a1405; background:linear-gradient(180deg,var(--amber),var(--amber-deep)); border-color:transparent; }
+  .minibar .mi.primary:hover{ filter:brightness(1.05); background:linear-gradient(180deg,var(--amber),var(--amber-deep)); color:#2a1405; }
+  .minibar .mi svg{ width:22px; height:22px; display:block; }
+  .minibar .mi-div{ width:1px; height:26px; background:var(--line); margin:0 3px; flex:0 0 auto; }
+  .minisheet{ position:fixed; z-index:44; left:50%; bottom:calc(max(10px,env(safe-area-inset-bottom)) + 66px); transform:translateX(-50%) translateY(10px);
+    width:min(94vw,430px); max-height:58vh; overflow:auto; display:none; opacity:0;
+    background:var(--glass); backdrop-filter:blur(18px) saturate(1.05); -webkit-backdrop-filter:blur(18px) saturate(1.05);
+    border:1px solid var(--line); border-radius:18px; padding:14px; box-shadow:var(--shadow-card);
+    transition:opacity .26s var(--ease-settle), transform .26s var(--ease-settle); }
+  .minisheet.open{ display:block; opacity:1; transform:translateX(-50%) translateY(0); }
+  .minisheet .controls{ display:flex; flex-direction:column; gap:var(--sp-3); }   /* stack the borrowed rows in the narrow sheet */
+  .minisheet .group{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
+  .minisheet .slider{ grid-column:1 / -1; }
+  .minisheet .spacer{ display:none; }
+  .minisheet .stat.note{ grid-column:1 / -1; }
+  body.minimal #minimalbtn, body.minimal #zen{ display:none; }   /* the bar already has these; hide the dupes in the sheet */
+  @media (max-width:430px){                              /* phones: tighten so all the icons fit one row */
+    .minibar{ gap:1px; padding:4px; max-width:99vw; }
+    .minibar .mi{ min-width:38px; min-height:42px; border-radius:11px; }
+    .minibar .mi svg{ width:19px; height:19px; }
+    .minibar .mi-div{ display:none; }                    /* drop the dividers on narrow screens */
+  }
+
   @media (prefers-reduced-motion: reduce){
     .cabinet{ animation:none; opacity:1; transform:none; }
     button.pulse,.live,.veil-cta{ animation:none; }
@@ -363,9 +405,9 @@
     <div class="group">
       <button id="bell" aria-pressed="true">Bell curve</button>
       <button id="paths" aria-pressed="false">Show paths</button>
-      <button id="aurorabtn" aria-pressed="true">Aurora &#10024;</button>
       <button id="musicbtn" aria-pressed="true">Music</button>
-      <button id="zen">Zen &#10024;</button>
+      <button id="zen">Zen</button>
+      <button id="minimalbtn">Minimal menu</button>
     </div>
   </div>
 
@@ -411,11 +453,29 @@
   </div>
 </div>
 
+<!-- Minimal mode: one slim always-there icon bar. The big Options / Lab panels pop up above it as sheets
+     (the live optsrow / labrow are moved into them, so every control and handler is reused, not duplicated). -->
+<div class="minibar" id="minibar" aria-hidden="true">
+  <button class="mi primary" id="mDrop" title="Drop one" aria-label="Drop one ball"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="15.5" r="4.5" fill="currentColor"/></svg></button>
+  <button class="mi" id="mPour" title="Pour a hundred" aria-label="Pour a hundred balls"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="2.3"/><circle cx="7" cy="11" r="2.3"/><circle cx="17" cy="11" r="2.3"/><circle cx="12" cy="16" r="2.3"/></svg></button>
+  <button class="mi" id="mRain" title="Rain" aria-label="Rain balls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 5l-1.5 4M11 5l-1.5 4M16 5l-1.5 4M8.5 13l-1.5 4M13.5 13l-1.5 4"/></svg></button>
+  <button class="mi" id="mGuess" title="Guess" aria-label="Guess the bin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/></svg></button>
+  <button class="mi" id="mReset" title="Reset" aria-label="Reset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3"/><path d="M4 20v-4.2h4.2"/></svg></button>
+  <span class="mi-div"></span>
+  <button class="mi" id="mOpts" title="Settings" aria-label="Settings" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="9" cy="8" r="2.3"/><circle cx="15" cy="16" r="2.3"/></svg></button>
+  <button class="mi" id="mLab" title="Lab" aria-label="Lab levers" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/></svg></button>
+  <button class="mi" id="mZen" title="Zen" aria-label="Zen mode"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z"/></svg></button>
+  <span class="mi-div"></span>
+  <button class="mi" id="mFull" title="Full menu" aria-label="Show the full menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+</div>
+<div class="minisheet" id="miniOpts" aria-hidden="true"></div>
+<div class="minisheet" id="miniLab" aria-hidden="true"></div>
+
 <!-- Zen (watch mode): a single frosted pill over the living scene. Fades away when you stop touching. -->
 <div class="zenbar" id="zenbar" aria-hidden="true">
   <span class="zlabel">Zen</span>
-  <button id="zenaurora" aria-pressed="true">Aurora &#10024;</button>
-  <button id="zenfw" aria-pressed="false">Fireworks &#10024;</button>
+  <button id="zenaurora" aria-pressed="true">Aurora</button>
+  <button id="zenfw" aria-pressed="false">Fireworks</button>
   <button id="zenexit">Exit</button>
 </div>
 
@@ -428,7 +488,7 @@
   const UIFONT='800 13px system-ui, -apple-system, sans-serif';
 
   // === CONFIG ===  shared view state + the "rig" (bias/momentum/wild) the levers set.
-  const S={ rows:15, speed:1, showBell:true, showPaths:false, music:true, sfx:true, aurora:true, rainOn:false,
+  const S={ rows:15, speed:1, showBell:true, showPaths:false, music:true, sfx:true, rainOn:false,
             guessMode:false, depth:'explore', logScale:false, compare:false,
             bias:0.5, momentum:0, wild:0,
             mode:'play' /* 'play' = the untouched sandbox; 'learn' = the story journey */,
@@ -796,12 +856,6 @@
     const btn=document.getElementById('musicbtn'); if(btn) btn.setAttribute('aria-pressed',on?'true':'false');
     if(!ensureAudio()) return; if(on) startMusic(); else stopMusic();
   }
-  // Aurora is a scene setting (persists), toggled from Options and mirrored in the zen pill. drawAurora
-  // reads S.aurora directly; the running loop repaints next frame, so no explicit Scene call is needed.
-  function setAurora(on){ S.aurora=!!on; saveProgress();
-    const b=document.getElementById('aurorabtn'); if(b) b.setAttribute('aria-pressed',on?'true':'false');
-    const zb=document.getElementById('zenaurora'); if(zb) zb.setAttribute('aria-pressed',on?'true':'false');
-  }
   // ---- synthesized plinks (mixed quiet over the music bed) ----
   // pitch helper: map an index onto a pentatonic scale so a rain of plinks stays musical over C/Am
   const PENT=[0,2,4,7,9];
@@ -873,7 +927,7 @@
       const moonX=lerp(0.16,0.84,clamp(mu,0,1)), moonArc=Math.sin(clamp(mu,0,1)*Math.PI), moonAbove=(t>=0.78||t<=0.22);
       return { sunX, sunArc, sunAbove, moonX, moonArc, moonAbove }; }
     // ---- offscreen pre-renders (built once per resize, blitted every frame) ----
-    let starSprite, auroraSprite, glowSprite, cloudSprite, tintCanvas, glintSprite;
+    let starSprite, glowSprite, cloudSprite, tintCanvas, glintSprite;
     let nui, iki;    // land geometry: the two Mokes, cached once per resize (never per frame)
     function canvas(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,w|0); c.height=Math.max(1,h|0); return c; }
     function makeRadial(size,inner,outer){ const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); const r=size/2;
@@ -884,30 +938,22 @@
         const s=blur<0.7?(1.2+Math.random()*2.2):(3+Math.random()*7), bright=blur<0.7?(0.5+Math.random()*0.5):(0.12+Math.random()*0.28), tint=Math.random();
         g.globalAlpha=bright; g.filter=tint<0.12?'hue-rotate(30deg) saturate(1.4)':(tint>0.9?'hue-rotate(200deg) saturate(1.2)':'none'); g.drawImage(dot,x-s,y-s,s*2,s*2); }
       g.filter='none'; g.globalAlpha=1; return c; }
-    // A soft aurora CURTAIN: a continuous glow band of dense overlapping radial dabs along a gently
-    // waving spine (green shifting toward teal/violet), plus faint vertical light drapes for aurora
-    // character. A broad sin envelope fades both ends to nothing; a heavy downscale/upscale blur melts
-    // dabs and drapes into one seamless soft curtain (no hard vertical banding). Blitted upper-left,
-    // night-only, so most of the sky stays dark and empty.
-    function makeAuroraSprite(w,h){ w=Math.max(2,w|0); h=Math.max(2,h|0); const c=canvas(w,h), g=c.getContext('2d');
-      g.globalCompositeOperation='lighter';
-      const N=Math.max(24,Math.round(w/22));
-      for(let i=0;i<N;i++){ const fx=i/(N-1), x=fx*w,
-          env=Math.pow(Math.sin(fx*Math.PI),0.7),                         // broad middle, fades both ends
-          wav=Math.sin(fx*Math.PI*1.5+0.6)+0.35*Math.sin(fx*Math.PI*3.1),
-          yc=h*(0.40+0.11*wav), ry=h*(0.20+0.10*Math.abs(Math.sin(fx*4.3))), rx=w*0.10,
-          tint=[70+90*fx+26*Math.sin(fx*2.0+0.4),226-92*fx,118+112*fx], rr=Math.max(rx,ry), a=0.42*env;   // green -> teal -> violet across x
-        const gr=g.createRadialGradient(x,yc,0,x,yc,rr); gr.addColorStop(0,rgb(tint,a)); gr.addColorStop(0.55,rgb(tint,a*0.4)); gr.addColorStop(1,rgb(tint,0));
-        g.save(); g.translate(x,yc); g.scale(rx/ry,1); g.translate(-x,-yc); g.fillStyle=gr; g.beginPath(); g.arc(x,yc,rr,0,7); g.fill(); g.restore(); }
-      for(let i=0;i<N;i++){ const fx=i/(N-1), x=fx*w, env=Math.pow(Math.sin(fx*Math.PI),0.9),   // faint vertical drapes
-          wav=Math.sin(fx*Math.PI*1.5+0.6), yc=h*(0.40+0.11*wav),
-          len=h*(0.30+0.24*Math.abs(Math.sin(fx*5.7+1))), top=yc-len*0.7, bot=yc+len*0.5,
-          tint=[80+95*fx,222-84*fx,128+104*fx], a=0.17*env*Math.abs(Math.sin(fx*8.1));
-        const gr=g.createLinearGradient(0,top,0,bot); gr.addColorStop(0,rgb(tint,0)); gr.addColorStop(0.45,rgb(tint,a)); gr.addColorStop(1,rgb(tint,0));
-        g.fillStyle=gr; const sw=(w/N)*1.6; g.fillRect(x-sw/2,top,sw,bot-top); }
-      g.globalCompositeOperation='source-over';
-      const bw=Math.max(2,Math.round(w/6)), bh=Math.max(2,Math.round(h/6)), s=canvas(bw,bh), sg=s.getContext('2d');   // heavy blur: 1/6 down then up melts everything smooth
+    // A single soft aurora "curtain dab" in one colour: a bright band near the top that hangs DOWN into
+    // a soft luminous drape, feathered to nothing at both sides. Pre-rendered once per colour, then
+    // stamped (tinted white -> col already baked in) all along a kid's drawn stroke; overlapping dabs
+    // melt into a continuous shimmering ribbon. A light downscale/upscale blur keeps every edge soft.
+    function makeAuroraDab(col){ const w=100,h=190,c=canvas(w,h),g=c.getContext('2d');
+      const vg=g.createLinearGradient(0,0,0,h);                            // bright band near top, curtain hangs below
+      vg.addColorStop(0.00,rgb(col,0)); vg.addColorStop(0.10,rgb(col,0.95)); vg.addColorStop(0.30,rgb(col,0.5));
+      vg.addColorStop(0.62,rgb(col,0.18)); vg.addColorStop(1.00,rgb(col,0));
+      g.fillStyle=vg; g.fillRect(0,0,w,h);
+      g.globalCompositeOperation='destination-in';                         // feather the two sides to nothing
+      const hg=g.createLinearGradient(0,0,w,0); hg.addColorStop(0,'rgba(0,0,0,0)'); hg.addColorStop(0.5,'rgba(0,0,0,1)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle=hg; g.fillRect(0,0,w,h); g.globalCompositeOperation='source-over';
+      const bw=Math.max(2,w>>2), bh=Math.max(2,h>>2), s=canvas(bw,bh), sg=s.getContext('2d');   // soft blur so it never has a hard edge
       sg.imageSmoothingEnabled=true; sg.drawImage(c,0,0,bw,bh); g.clearRect(0,0,w,h); g.imageSmoothingEnabled=true; g.drawImage(s,0,0,w,h); return c; }
+    const AUR_COLS=[[127,232,169],[86,222,214],[92,168,232]];   // the ribbon walks green -> teal -> blue along a stroke (drawaurora-style)
+    let auroraDabs=null;   // built lazily, once
     // a soft round glint, stretched wide+flat at blit time into an elongated highlight on the water
     function makeGlintSprite(){ const s=48, c=canvas(s,s), g=c.getContext('2d'); const gr=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
       gr.addColorStop(0,'rgba(255,255,255,0.9)'); gr.addColorStop(0.4,'rgba(255,255,255,0.28)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,s,s); return c; }
@@ -925,7 +971,6 @@
       scv.width=Math.round(W*DPR); scv.height=Math.round(H*DPR); scv.style.width=W+'px'; scv.style.height=H+'px'; sctx.setTransform(DPR,0,0,DPR,0,0);
       horizonY=Math.max(1,Math.round(H*0.60));
       starSprite=makeStarSprite(Math.min(W,1600),Math.round(horizonY));
-      auroraSprite=makeAuroraSprite(Math.min(W,1400),Math.round(horizonY*0.9));
       glintSprite=glintSprite||makeGlintSprite();
       cloudSprite=cloudSprite||makeCloudSprite(); glowSprite=makeRadial(256,'rgba(255,255,255,1)','rgba(255,255,255,0)');
       // sea reflection offscreens (CSS-px, NOT DPR-scaled): mirror captures the sky band, blur softens it
@@ -939,12 +984,31 @@
     function drawSky(P){ const g=sctx.createLinearGradient(0,0,0,horizonY); g.addColorStop(0,rgb(P.zenith)); g.addColorStop(0.55,rgb(P.mid)); g.addColorStop(1,rgb(P.horizon)); sctx.fillStyle=g; sctx.fillRect(0,0,W,horizonY); }
     function drawStars(P,time){ if(P.starK<=0.01) return; sctx.globalAlpha=P.starK; sctx.drawImage(starSprite,0,0,starSprite.width,starSprite.height,0,0,W,horizonY); sctx.globalAlpha=1;
       if(reduce) return; for(const tw of twinkles){ const a=P.starK*(0.4+0.6*Math.abs(Math.sin(time*tw.sp+tw.ph))), s=tw.s*(1+0.4*Math.sin(time*tw.sp*1.3+tw.ph)); sctx.globalAlpha=a; sctx.drawImage(glowSprite,tw.x*W-s*3,tw.y*horizonY*0.9-s*3,s*6,s*6); } sctx.globalAlpha=1; }
-    // restrained, night-only, toggleable: a soft glow hugging the upper-left third, lots of empty sky
-    function drawAurora(P,time){ if(!S.aurora || S.lite || P.starK<=0.02) return;
-      const a=P.starK*0.8, dx=reduce?0:Math.sin(time*0.05)*W*0.02, dy=reduce?0:Math.sin(time*0.08)*6;
-      sctx.globalCompositeOperation='lighter'; sctx.globalAlpha=a;
-      sctx.drawImage(auroraSprite,dx,horizonY*0.02+dy,W*0.68,horizonY*0.56);   // upper-LEFT, peak on-screen; right third stays clear
-      sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over'; }
+    // ---- kid-drawn aurora (zen mode): drag a finger to hang shimmering ribbons in the sky. Each stroke
+    //      is a list of points; a curtain dab is stamped along it, colour walking green->teal->blue. A
+    //      stroke fades in as it is drawn, holds a few seconds after release, then dissolves on its own. ----
+    let auroraStrokes=[], activeStroke=null;
+    const AUR_HOLD=3.2, AUR_FADE=5.0, AUR_MAX=28, AUR_MAXPTS=140, AUR_MINDIST2=13*13;
+    function auroraDown(x,y){ activeStroke={ pts:[[x,y]], age:0, phase:Math.random()*6.28, released:false, hold:0, fade:1 };
+      auroraStrokes.push(activeStroke); if(auroraStrokes.length>AUR_MAX) auroraStrokes.shift(); }
+    function auroraMove(x,y){ if(!activeStroke) return; const p=activeStroke.pts, l=p[p.length-1];
+      if((x-l[0])*(x-l[0])+(y-l[1])*(y-l[1])>=AUR_MINDIST2){ p.push([x,y]); if(p.length>AUR_MAXPTS) p.shift(); } }
+    function auroraUp(){ if(activeStroke){ activeStroke.released=true; activeStroke.hold=AUR_HOLD; activeStroke=null; } }
+    function updateAurora(dt){ if(!auroraStrokes.length) return;
+      for(const st of auroraStrokes){ st.age+=dt; if(st.released){ if(st.hold>0) st.hold-=dt; else st.fade-=dt/AUR_FADE; } }
+      auroraStrokes=auroraStrokes.filter(st=>st.fade>0); }
+    function drawAuroraStrokes(time){ if(!auroraStrokes.length) return;
+      if(!auroraDabs) auroraDabs=AUR_COLS.map(makeAuroraDab);
+      const H0=horizonY*0.60, w0=Math.max(58,W*0.11), step=S.lite?2:1;
+      sctx.save(); sctx.globalCompositeOperation='lighter';
+      for(const st of auroraStrokes){ const base=Math.min(1,st.age/0.28)*Math.max(0,st.fade); if(base<=0.02) continue;
+        const pts=st.pts, n=pts.length;
+        for(let i=0;i<n;i+=step){ const x=pts[i][0], y=pts[i][1], u=n>1?i/(n-1):0;
+          const dab=auroraDabs[u<0.34?0:(u<0.67?1:2)];
+          const shim=reduce?0.82:(0.6+0.4*Math.sin(time*1.7+i*0.5+st.phase));
+          const h=H0*(reduce?1:(0.78+0.22*Math.sin(i*0.4+st.phase+time*0.5)));
+          sctx.globalAlpha=base*0.5*shim; sctx.drawImage(dab,x-w0/2,y-h*0.12,w0,h); } }
+      sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over'; sctx.restore(); }
     function drawClouds(P,time){ const ca=P.cloudA*(1-P.starK*0.9); if(ca<=0.02) return;   // fade clouds out at night so the sky reads dark and clear, drawaurora-style
       for(const cl of clouds){ const x=((cl.x+(reduce?0:time*cl.sp))%1.2-0.1)*W, y=cl.y*horizonY, w=340*cl.sc, h=170*cl.sc; sctx.globalAlpha=ca; sctx.drawImage(cloudSprite,x-w/2,y-h/2,w,h); } sctx.globalAlpha=1; }
     function drawBirds(P,time){ const vis=clamp(1-P.starK*3,0,1); if(vis<=0.05||reduce) return; sctx.strokeStyle='rgba(40,54,70,'+(0.5*vis)+')'; sctx.lineWidth=1.6;
@@ -1023,24 +1087,21 @@
     function drawRipples(seaH,time){ if(!ripples.length) return; sctx.save(); sctx.globalCompositeOperation='lighter';
       for(const rp of ripples){ const k=rp.life, rad=(1-k)*70+8; sctx.strokeStyle='rgba(200,240,220,'+(0.30*k)+')'; sctx.lineWidth=1.4; sctx.beginPath(); sctx.ellipse(rp.x,rp.y,rad,rad*(rp.y>horizonY?0.32:0.7),0,0,6.2832); sctx.stroke(); }
       sctx.globalCompositeOperation='source-over'; sctx.restore(); }
-    // ---- fireworks (zen mode): rockets rise from the far shore and burst overhead; drawn just
-    //      before the sea so the mirror-calm water catches every bloom. Additive, pre-glow blits. ----
-    let fwOn=false, rockets=[], sparks=[], fwTimer=0, lastDrawT=0;
+    // ---- fireworks (zen mode): a kid TAPS the sky and a rocket climbs from the shore to that spot and
+    //      bursts. Drawn just before the sea so the mirror-calm water catches every bloom. ----
+    let rockets=[], sparks=[], lastDrawT=0;
     const FW_COLORS=[[170,90,255],[96,240,150],[255,205,90],[255,110,185],[110,235,225],[205,120,255]];
-    // reduced motion: never arm fireworks (they are the most motion-heavy effect); reset the timer on
-    // an off->on flip so re-enabling launches promptly. Sparks already aloft fade out on their own.
-    function setFireworks(on){ const was=fwOn; fwOn=!!on && !reduce; if(fwOn && !was) fwTimer=0; }
-    function launchRocket(){ const peakY=horizonY*(0.14+Math.random()*0.42), col=FW_COLORS[(Math.random()*FW_COLORS.length)|0];
-      rockets.push({ x:W*(0.18+Math.random()*0.64), y:horizonY-2, px:0, py:0, vx:(Math.random()*2-1)*W*0.018,
-        vy:-(horizonY-peakY)/0.95*(0.92+Math.random()*0.18), peakY, col, trail:[] }); }
+    // one rocket, straight up from the horizon under the tap, timed to burst AT the tapped point
+    // (kinematic v0 = dist/t + 0.5*g*t so it always reaches). No-op under reduced motion.
+    function popFirework(x,y){ if(reduce) return; const col=FW_COLORS[(Math.random()*FW_COLORS.length)|0];
+      const startY=horizonY-2, ty=Math.min(y,horizonY-8), t=0.72, g=horizonY*0.5, dist=Math.max(24,startY-ty);
+      rockets.push({ x, y:startY, px:x, py:startY, vx:0, vy:-(dist/t+0.5*g*t), peakY:ty, col, trail:[] }); }
+    function clearZenArt(){ rockets.length=0; sparks.length=0; auroraStrokes.length=0; activeStroke=null; }
     function burst(x,y,col){ const N=46+((Math.random()*42)|0), willow=Math.random()<0.28, base=(80+Math.random()*80)*(horizonY/520);
       for(let i=0;i<N;i++){ const a=(i/N)*6.2832+Math.random()*0.22, sp=base*(0.45+Math.random()*0.7);
         sparks.push({ x, y, px:x, py:y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-(willow?12:0), life:1, max:0.85+Math.random()*0.8, col, willow }); }
       sparks.push({ x, y, px:x, py:y, vx:0, vy:0, life:1, max:0.22, col:[255,255,255], flash:true }); }   // a bright ignition flash
-    function updateFireworks(dt){ if(dt<=0) return;
-      // stop launching new rockets while the frame budget is tight (S.lite) so a struggling phone
-      // can recover — aloft sparks keep draining. Under reduce, fwOn is already false (setFireworks).
-      if(fwOn && !S.lite){ fwTimer-=dt; if(fwTimer<=0){ launchRocket(); if(Math.random()<0.22) launchRocket(); fwTimer=0.85+Math.random()*1.7; } }
+    function updateFireworks(dt){ if(dt<=0 || (!rockets.length && !sparks.length)) return;
       const grav=horizonY*0.5, dxk=Math.pow(0.985,dt*30), dyk=Math.pow(0.99,dt*30);   // frame-rate-independent drag (normalised to 30fps)
       for(const r of rockets){ r.px=r.x; r.py=r.y; r.x+=r.vx*dt; r.y+=r.vy*dt; r.vy+=grav*dt;
         r.trail.push(r.x,r.y); if(r.trail.length>12) r.trail.splice(0,2);
@@ -1083,11 +1144,11 @@
       draw(nowMs/1000);
     }
     function draw(time){ if(!W) return; const P=paletteAt(sceneT), C=celestial(sceneT);
-      const fdt=lastDrawT? Math.min(0.05,time-lastDrawT):0; lastDrawT=time; updateFireworks(fdt);
-      drawSky(P); drawStars(P,time); drawAurora(P,time); drawClouds(P,time); drawBirds(P,time); const body=drawCelestial(P,C); drawLand(P); drawHorizonGlow(P);
+      const fdt=lastDrawT? Math.min(0.05,time-lastDrawT):0; lastDrawT=time; updateFireworks(fdt); updateAurora(fdt);
+      drawSky(P); drawStars(P,time); drawAuroraStrokes(time); drawClouds(P,time); drawBirds(P,time); const body=drawCelestial(P,C); drawLand(P); drawHorizonGlow(P);
       drawFireworks(time);         // before drawSea so the mirror-calm water reflects every bloom
       drawSea(P,body,time); }
-    return { resize, frame, begin, easeTo, release, setTime, addRipple, setFireworks, horizon:()=>horizonY, _t:()=>sceneT };
+    return { resize, frame, begin, easeTo, release, setTime, addRipple, popFirework, auroraDown, auroraMove, auroraUp, clearZenArt, horizon:()=>horizonY, _t:()=>sceneT };
   })();
 
   /* ---------------- peg sprite (luminous points, cached per radius) ---------------- */
@@ -1266,7 +1327,6 @@
 
   toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers show how many <b>paths</b> reach each bin. Lots of ways to the middle. Only <b>one</b> way to each edge.',''); });
   document.getElementById('musicbtn').addEventListener('click',function(){ firstTouch(); setMusic(!S.music); });
-  document.getElementById('aurorabtn').addEventListener('click',function(){ setAurora(!S.aurora); });
 
   // Options / Lab are ONE accordion: opening a panel closes its sibling; tapping the open one closes it.
   // (The old independent toggles let both panels stack open at once.)
@@ -1284,6 +1344,42 @@
     const open=!document.getElementById('labrow').classList.contains('on');
     setPanel(open?'lab':null);
     if(open) setInsight('Lab mode: now you can <b>rig</b> the machine. Lean the pegs, make streaks stick, or add wild jumps. Then watch the tidy hill break.',''); });
+
+  /* ---------------- Minimal mode: one slim always-there icon bar; the big panels pop up as sheets ----------------
+     The full dock hides and its LIVE optsrow / labrow are moved into pop-up sheets (same node-borrow the Learn
+     stage uses), so every control and handler is reused, never cloned. The bar never fully leaves; it only dims
+     when idle. Play-only: the toggle lives in Options, and mFull returns to the full dock. */
+  const minibar=document.getElementById('minibar'), miniOpts=document.getElementById('miniOpts'), miniLab=document.getElementById('miniLab');
+  let miniPhOpts=null, miniPhLab=null, miniIdle=0;
+  function syncMiniToggles(){ document.getElementById('mRain').setAttribute('aria-pressed',document.getElementById('rain').getAttribute('aria-pressed')||'false');
+    document.getElementById('mGuess').setAttribute('aria-pressed',document.getElementById('guess').getAttribute('aria-pressed')||'false'); }
+  function miniWake(){ minibar.classList.remove('dim'); syncMiniToggles(); if(miniIdle) clearTimeout(miniIdle);
+    miniIdle=setTimeout(()=>{ if(document.body.classList.contains('minimal')) minibar.classList.add('dim'); }, 4000); }
+  function openSheet(which){ const oOpen=which==='opts', lOpen=which==='lab';
+    miniOpts.classList.toggle('open',oOpen); miniLab.classList.toggle('open',lOpen);
+    miniOpts.setAttribute('aria-hidden',oOpen?'false':'true'); miniLab.setAttribute('aria-hidden',lOpen?'false':'true');
+    document.getElementById('mOpts').setAttribute('aria-pressed',oOpen?'true':'false');
+    document.getElementById('mLab').setAttribute('aria-pressed',lOpen?'true':'false'); miniWake(); }
+  function enterMinimal(){ if(document.body.classList.contains('minimal')) return;
+    setPanel(null);                                        // collapse the accordion before borrowing its rows
+    const or=document.getElementById('optsrow'), lr=document.getElementById('labrow');
+    miniPhOpts=document.createComment('optsrow'); or.parentNode.insertBefore(miniPhOpts,or); miniOpts.appendChild(or);
+    miniPhLab=document.createComment('labrow'); lr.parentNode.insertBefore(miniPhLab,lr); miniLab.appendChild(lr);
+    document.body.classList.add('minimal'); minibar.setAttribute('aria-hidden','false'); openSheet(null); miniWake(); }
+  function exitMinimal(){ if(!document.body.classList.contains('minimal')) return;
+    openSheet(null);
+    const or=document.getElementById('optsrow'), lr=document.getElementById('labrow');
+    if(miniPhOpts&&miniPhOpts.parentNode){ miniPhOpts.parentNode.insertBefore(or,miniPhOpts); miniPhOpts.remove(); miniPhOpts=null; }
+    if(miniPhLab&&miniPhLab.parentNode){ miniPhLab.parentNode.insertBefore(lr,miniPhLab); miniPhLab.remove(); miniPhLab=null; }
+    document.body.classList.remove('minimal'); minibar.setAttribute('aria-hidden','true'); setPanel(null); }
+  document.getElementById('minimalbtn').addEventListener('click', enterMinimal);
+  document.getElementById('mFull').addEventListener('click', exitMinimal);
+  const miAct=(mid,realId)=>document.getElementById(mid).addEventListener('click',()=>{ document.getElementById(realId).click(); miniWake(); });
+  miAct('mDrop','drop1'); miAct('mPour','drop100'); miAct('mRain','rain'); miAct('mGuess','guess'); miAct('mReset','reset');
+  document.getElementById('mZen').addEventListener('click',()=>{ openSheet(null); document.getElementById('zen').click(); });
+  document.getElementById('mOpts').addEventListener('click',()=> openSheet(miniOpts.classList.contains('open')?null:'opts'));
+  document.getElementById('mLab').addEventListener('click',()=> openSheet(miniLab.classList.contains('open')?null:'lab'));
+  window.addEventListener('pointermove',()=>{ if(document.body.classList.contains('minimal')) miniWake(); },{passive:true});
 
   // meter fill: paint the filled part of each track (the CSS gradient reads --fill)
   function paintFill(el){ const pct=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--fill',pct+'%'); }
@@ -1483,16 +1579,13 @@
   const PKEY='plink.progress.v1';
   function saveProgress(){ try{ localStorage.setItem(PKEY, JSON.stringify({ v:1, lastMode:S.mode, chapter:learn.idx,
     completed:CHAPTERS.map((c,i)=>!!learn.completed[i]),
-    audio:{ music:S.music, sfx:S.sfx }, scene:{ aurora:S.aurora },
+    audio:{ music:S.music, sfx:S.sfx },
     levers:{ rows:S.rows, bias:S.bias, momentum:S.momentum, wild:S.wild, logScale:S.logScale, compare:S.compare } })); }catch(e){} }
   function initLearn(){
     let p=null; try{ p=JSON.parse(localStorage.getItem(PKEY)||'null'); }catch(e){}
     if(!p || p.v!==1) return;
     if(p.audio){ S.music=p.audio.music!==false; S.sfx=p.audio.sfx!==false;   // default ON when the field is absent
       const mb=document.getElementById('musicbtn'); if(mb) mb.setAttribute('aria-pressed',S.music?'true':'false'); }
-    if(p.scene){ S.aurora=p.scene.aurora!==false;   // default ON when absent; mirror into both toggles
-      const ab=document.getElementById('aurorabtn'); if(ab) ab.setAttribute('aria-pressed',S.aurora?'true':'false');
-      const za=document.getElementById('zenaurora'); if(za) za.setAttribute('aria-pressed',S.aurora?'true':'false'); }
     if(Array.isArray(p.completed)) p.completed.forEach((v,i)=>{ if(v && i<CHAPTERS.length) learn.completed[i]=true; });
     learn.idx=Math.max(0,Math.min(CHAPTERS.length-1, p.chapter|0));
     if(p.lastMode==='learn') enterLearn(learn.idx);   // resume the story where they left off
@@ -1511,26 +1604,42 @@
   // returning to the tab: resume the audio context (the day clock self-pauses while hidden)
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && AC && AC.state==='suspended') AC.resume(); });
 
-  /* ---------------- ZEN (watch mode): the board dissolves; you watch the living world ---------------- */
-  const zenbar=document.getElementById('zenbar'), zenfw=document.getElementById('zenfw');
-  if(reduce) zenfw.disabled=true;   // reduced motion: fireworks stay off, so the toggle reads honestly
-  let zenOn=false, zenIdleTimer=0;
+  /* ---------------- ZEN (watch mode): the board dissolves; the sky becomes the kid's canvas ----------------
+     The zen pill carries a TOOL toggle: Aurora (drag a finger to paint shimmering ribbons) or Fireworks
+     (tap the sky to send up a rocket). Whichever is chosen decides what a touch on the scene does. */
+  const zenbar=document.getElementById('zenbar'), zenaurora=document.getElementById('zenaurora'),
+        zenfw=document.getElementById('zenfw'), zlabel=zenbar.querySelector('.zlabel');
+  let zenOn=false, zenIdleTimer=0, zenTool='aurora';
+  if(reduce) zenfw.disabled=true;   // reduced motion: no fireworks, so aurora is the only tool
   function zenWake(){ if(!zenOn) return; zenbar.classList.remove('idle'); if(zenIdleTimer) clearTimeout(zenIdleTimer);
     zenIdleTimer=setTimeout(()=>{ if(zenOn) zenbar.classList.add('idle'); }, 4200); }   // slip the pill away after a few still seconds
+  function setTool(t){ zenTool=t; zenaurora.setAttribute('aria-pressed',t==='aurora'?'true':'false');
+    zenfw.setAttribute('aria-pressed',t==='fw'?'true':'false'); if(zlabel) zlabel.textContent=(t==='aurora'?'Drag':'Tap'); zenWake(); }
   function enterZen(){ if(zenOn) return; zenOn=true; firstTouch(); ensureAudio(); stopModes();   // no rain/guess churning behind the curtain
-    document.body.classList.add('zen'); zenbar.classList.add('on'); zenbar.setAttribute('aria-hidden','false'); zenWake(); }
+    document.body.classList.add('zen'); zenbar.classList.add('on'); zenbar.setAttribute('aria-hidden','false'); setTool('aurora'); }
   function exitZen(){ if(!zenOn) return; zenOn=false; if(zenIdleTimer){ clearTimeout(zenIdleTimer); zenIdleTimer=0; }
     document.body.classList.remove('zen'); zenbar.classList.remove('on','idle'); zenbar.setAttribute('aria-hidden','true');
-    Scene.setFireworks(false); zenfw.setAttribute('aria-pressed','false'); }
+    Scene.clearZenArt(); }   // wipe the painted sky so the next visit starts clean
   document.getElementById('zen').addEventListener('click', enterZen);
   document.getElementById('zenexit').addEventListener('click', exitZen);
-  zenfw.addEventListener('click', function(){ const on=this.getAttribute('aria-pressed')!=='true'; this.setAttribute('aria-pressed',on?'true':'false'); Scene.setFireworks(on); zenWake(); });
-  document.getElementById('zenaurora').addEventListener('click', function(){ setAurora(!S.aurora); zenWake(); });
+  zenaurora.addEventListener('click', ()=>setTool('aurora'));
+  zenfw.addEventListener('click', ()=>{ if(!zenfw.disabled) setTool('fw'); });
   window.addEventListener('pointermove', ()=>{ if(zenOn) zenWake(); }, {passive:true});
   window.addEventListener('keydown', e=>{ if(zenOn && e.key==='Escape') exitZen(); });
 
-  // touch ripples on the exposed scene (taps fall through the grid gaps to the #scene canvas)
-  document.getElementById('scene').addEventListener('pointerdown', e=>{ Scene.addRipple(e.clientX, e.clientY); if(zenOn) zenWake(); });
+  // the exposed scene canvas is the input surface. In Play, taps in the grid gaps ripple; in zen (where
+  // .app is pointer-events:none) the whole screen reaches #scene, and the chosen tool paints or pops.
+  const sceneEl=document.getElementById('scene'); let zenDrawing=false;
+  sceneEl.addEventListener('pointerdown', e=>{
+    if(!zenOn){ Scene.addRipple(e.clientX,e.clientY); return; }
+    zenWake();
+    if(zenTool==='aurora'){ zenDrawing=true; Scene.auroraDown(e.clientX,e.clientY); try{ sceneEl.setPointerCapture(e.pointerId); }catch(_){} }
+    else Scene.popFirework(e.clientX,e.clientY);
+  });
+  sceneEl.addEventListener('pointermove', e=>{ if(zenOn && zenDrawing){ Scene.auroraMove(e.clientX,e.clientY); zenWake(); } });
+  function endStroke(){ if(zenDrawing){ Scene.auroraUp(); zenDrawing=false; } }
+  sceneEl.addEventListener('pointerup', endStroke);
+  sceneEl.addEventListener('pointercancel', endStroke);
 
   // landing veil: the tap-to-begin unlocks audio (browser autoplay gate) and starts the accelerated day
   const veilEl=document.getElementById('veil');
