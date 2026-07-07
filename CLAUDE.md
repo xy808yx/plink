@@ -194,13 +194,91 @@ lightning, kill the "Plink" intro wordmark, and "the non-minimized menu still lo
   scrolls they stay reachable at the visible bottom instead of dropping below the fold). `#minimalbtn`
   is now just **"Minimal"**. Options gained `.opthead` section labels (Board / Sky), the Time meter, and a
   Weather toggle; it is forced to a 2-col grid in portrait (`.dock .optsrow`) so Bell|Paths, Music|Weather
-  pair evenly. The stale `#zen{grid-column:1/-1}` rule was reduced to its border accent.
+  pair evenly. The stale `#zen{grid-column:1/-1}` rule was reduced to a border accent, then dropped
+  entirely in the dock-chrome-polish pass below (Zen now reads identically to Minimal).
 - **Minimal is now IMMERSIVE.** `body.minimal` hides dock/topbar/insight and collapses `.app` to a single
   full-bleed `"board"` area; `.cabinet` goes transparent/borderless so the near-full-screen Galton board
   floats directly on the living scene (a zen way to just watch it), with only the slim `minibar` at the
   bottom. Works in BOTH orientations (the `body.minimal .app` grid override out-specifies the portrait and
   landscape `.app` grids). The minibar still borrows `optsrow`/`labrow` into pop-up sheets (which now carry
   the new Time/Weather controls too).
+
+## Dock chrome polish ("make the full dock feel like the minibar")
+
+J: "polish the dock" (the non-minimized menu still looked like a grid of dark boxes bolted on the scene).
+A CSS-only restyle that ports the minibar's clean language onto the full dock. Design-panel Workflow (3
+directions -> synthesis) + a 4-lens adversarial-review Workflow that caught 3 real issues (all fixed).
+
+- **Borderless-at-rest buttons.** Base `button` border went `1px solid var(--line)` -> `1px solid
+  transparent` (kept the faint `var(--surface)` fill so text controls still read as tappable chips). This
+  single change kills the grid-of-boxes; every dock/panel button is now a soft chip, not an outlined box.
+  The amber `.primary` hero and `.minibar .mi` (own rules) are untouched.
+- **Active toggle = the minibar's soft signal.** `button[aria-pressed="true"]` dropped the inset aurora
+  ring for `background:var(--surface-2); color:var(--aurora); border-color:aurora 45%` (rain: amber 50% +
+  `--honey` text). Mirrors `.minibar .mi[aria-pressed]` exactly.
+- **Segmented pair (`.seg` = Learn|Play + Options|Lab)** got ONE group outline (`box-shadow:inset 0 0 0
+  1px`) + a single hairline internal divider (first-child `border-right`). GOTCHA the review caught: the
+  new aurora active-border collided with the divider (double hairline at the seam), so `.seg
+  button[aria-pressed="true"]{ border-color:transparent }` was added AFTER the first-child rule (equal
+  specificity, source-order wins) so inside a seg the active read is fill + aurora text only; the group
+  outline + divider own the edges.
+- **Container softened** slab -> floating card: `.dock` + `.insight` border to a hairline (`--line` 55%)
+  and shadow from `--shadow-card` to a soft `0 14px 44px -30px`. Kept the `--glass` fill + blur, so day-sky
+  legibility is unchanged (verified over a real noon sky).
+- **Landscape void fix.** The rail was a full-height slab (`height:100%`) with a dead middle. Now
+  `max-height:100%; height:auto; align-self:center` so it SHRINK-WRAPS to content and floats CENTERED in
+  the column (scene above/below); when content overflows a short landscape phone it caps at 100% and
+  scrolls with the SOLID `--glass` fill intact (legibility never breaks). GOTCHA the review caught: naively
+  dropping the sticky footer regressed a deliberate prior fix (Zen|Minimal scrolled below the fold on a
+  short landscape phone, worse with Options open). Restored `.dock .modesrow{ position:sticky; bottom:0;
+  margin-top:auto }` with a `color-mix(--night 96%)` frosted backing (covers controls scrolling behind;
+  margin-top:auto collapses to 0 when the card is content-sized, so the fits case stays a clean floating
+  card). The opaque footer band is inherent to a sticky footer over a translucent scrolling card.
+- **Quieter chrome.** `.eyebrow` green softened to `color-mix(--aurora 52%, --ink-faint)`. `.modesrow
+  button` (Zen|Minimal) kept `background:var(--surface)` (NOT transparent) so they read as tappable chips
+  on touch, where there is no `:hover` to reveal an outline (another review catch). `#zen` border-accent
+  removed so Zen matches Minimal.
+
+## Moke reshape, minimal stars, portrait fix, touch-first buttons (this pass)
+
+J's asks off the reference photos of the real twin islets: the Mokes were not right, the stars looked
+like "floating dust everywhere", the islands "bunch up like creepy mountains" in portrait, and one more
+pass on the buttons for iPad / iPhone Pro first. Verified in-browser at day/golden/night and portrait +
+landscape via the temp `window.__scene` hook (removed before ship); adversarial-review Workflow after.
+
+- **Moke silhouettes rebuilt SMOOTH.** `islePoints(cx,w,h,baseY,kind)` now takes a `kind` (`'nui'`/`'iki'`)
+  instead of a `lean` number, and defers the profile to `isleProfile(kind,f)` built from a small gaussian
+  helper `bell(f,c,w)` (Scene-scoped, no collision with the `#bell` button or `S.showBell`). The craggy
+  sine ripple is GONE (it read as jagged mountains). **Moku Nui** = a tall headland left-of-centre falling
+  to a lower rounded shoulder on the right (`0.36*body + 0.72*bell(.34,.17) + 0.50*bell(.64,.20)`);
+  **Moku Iki** = one clean gently-peaked dome (`0.52*body + 0.52*bell(.46,.30)`). `body =
+  sin(f*PI)^0.80` keeps the base zero at both shores. Matches the sunset-silhouette reference: peak-left
+  Nui, rounded-dome Iki.
+- **Portrait bunching fixed (heights are WIDTH-driven, not sky-driven).** The old geometry keyed island
+  HEIGHT to `horizonY`, so a tall portrait viewport stretched them into close, creepy spikes. Now in
+  `resize()`: `uw=min(W*0.27,300)` is the Nui base width; `NUIh=min(uw*0.46, horizonY*0.34)` and
+  `IKIh=min(uw*0.58*0.62, horizonY*0.26)` scale height to WIDTH with a horizonY cap (so a short landscape
+  phone never looms). Positions spread to `NUIx=W*0.37`, `IKIx=W*0.70` with proportional widths so a clear
+  water channel survives in BOTH orientations (verified ~46px gap at 375px portrait). If you retune, keep
+  height width-driven and keep the channel; do NOT key height to horizonY again.
+- **Minimal starfield (killed the dust).** `makeStarSprite` dropped the big-faint-halo branch entirely
+  (that soft-blob branch WAS the "floating dust") and cut density `N=w*h/2600 -> w*h/11000`; every star is
+  now a small crisp point (`s=0.7+1.5`, `bright=0.5+0.5`, high in the sky at `y<h*0.78`). `buildTwinkles`
+  went `26 -> 9` gentle sparkles (`s=0.8+1.1`). `drawStars` unchanged (still reads `tw.s/x/y/sp/ph`).
+- **Touch-first button pass (iPad / iPhone Pro first).** (1) Every `:hover` rule is now gated behind
+  `@media (hover:hover)` (base button, primary, `.modesrow`, `.minibar .mi`) so hover styling never
+  STICKS after a tap on iOS. (2) Active toggles got a glance-clear tinted FILL, not just tinted text:
+  `button[aria-pressed="true"]` -> `background:color-mix(--aurora 15%, --surface-2)` + aurora border/text;
+  the `.rain` variant uses amber; `.minibar .mi[aria-pressed]` mirrors the aurora tint so dock == minibar.
+  The `.seg button[aria-pressed]{border-color:transparent}` divider guard still holds, but the review
+  caught that the `border-color` shorthand ALSO zeroes the first tab's `border-right` (which IS the
+  divider), so the hairline vanished whenever the LEFT tab was selected (Learn, or Options). Fixed with
+  `.seg button:first-child[aria-pressed="true"]{ border-right-color:color-mix(--line 55%) }` to re-assert it.
+  (3) Comfortable targets: `.livebtn` 32->36, `.zenbar button` 40->44, narrow-phone `.minibar .mi`
+  min-height 42->44. `button:active` press deepened to `scale(.97)`. NOTE `color` is not in the button
+  `transition` list, so verifying an aria-pressed toggle's FILL in a hidden preview tab shows the start
+  colour (the background transition never advances when the tab is hidden) while the text snaps — bypass
+  with `el.style.transition='none'` when probing computed styles.
 
 ## The four levers (all in Lab mode)
 
