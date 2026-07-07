@@ -51,7 +51,7 @@
   .app{ position:relative; z-index:1; }
   /* Ripples fall through the transparent gaps of the grid to the scene; interactive cards opt back in. */
   .app{ pointer-events:none; }
-  .topbar,.cabinet,.insight,.dock,.veil{ pointer-events:auto; }
+  .topbar,.cabinet,.dock,.veil{ pointer-events:auto; }
 
   /* Landing veil: a quiet tap-to-begin over the live scene. The tap unlocks audio and starts the day. */
   .veil{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
@@ -70,7 +70,7 @@
   @keyframes breathe{ 0%,100%{ opacity:.42; } 50%{ opacity:1; } }
   /* SHELL: a CSS grid, not a flex column, so the board CLAIMS its space up front instead of
      getting whatever the wrapping controls leave over (the old "board is 1/3 the screen" bug).
-     Portrait: header / board / insight / dock stack. Landscape (below): board + side-rail dock. */
+     Portrait: header / board / dock stack. Landscape (below): board + side-rail dock. */
   .app{
     height:100%; height:100svh;                  /* modern: svh = the always-visible height. Fallback: 100% (via html,body height:100%) never overshoots the small viewport the way 100vh would with overflow:hidden */
     display:grid; gap:11px;
@@ -80,16 +80,15 @@
       max(13px, env(safe-area-inset-bottom))
       max(clamp(10px,3vw,30px), env(safe-area-inset-left));
     grid-template-columns:minmax(0,1fr);         /* min 0 so a wide child can never blow the column past the viewport */
-    grid-template-rows:auto minmax(0,1fr) auto auto;
-    grid-template-areas:"head" "board" "insight" "dock";
+    grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"head" "board" "dock";
   }
   .topbar{ grid-area:head; }
   .cabinet{ grid-area:board; }
-  .insight{ grid-area:insight; }
   /* DOCK wraps all three control blocks. Portrait = a capped, internally-scrolling bottom shelf,
      so revealing Lab/Colors scrolls the dock instead of stealing height from the board. */
   .dock{ grid-area:dock; display:flex; flex-direction:column; gap:var(--sp-3); min-height:0; min-width:0;
-    max-height:250px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+    max-height:min(50vh,340px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;  /* fits the default control stack (~284px) so Play buttons never scroll; still caps an OPEN Options/Lab panel so it scrolls instead of crushing the board */
     padding:var(--sp-3);
     background:linear-gradient(180deg, color-mix(in srgb, var(--aurora) 6%, transparent), transparent 34%), var(--glass);
     backdrop-filter:blur(16px) saturate(1.05); -webkit-backdrop-filter:blur(16px) saturate(1.05);
@@ -128,14 +127,6 @@
   .hint{ position:absolute; left:50%; bottom:15px; transform:translateX(-50%); font-size:12.5px; color:var(--ink-dim);
     font-weight:600; pointer-events:none; background:rgba(8,14,20,.55); border:1px solid var(--line);
     padding:6px 13px; border-radius:999px; backdrop-filter:blur(5px); transition:opacity .5s; }
-
-  .insight{ flex:0 0 auto; min-height:48px; min-width:0; display:flex; align-items:center; gap:11px; padding:12px 17px; border-radius:var(--r-card);
-    background:var(--glass); backdrop-filter:blur(14px) saturate(1.05); -webkit-backdrop-filter:blur(14px) saturate(1.05);
-    border:1px solid color-mix(in srgb, var(--line) 55%, transparent); box-shadow:0 14px 44px -30px rgba(0,8,20,.7); font-size:clamp(13px,2.4vw,15.5px); font-weight:600; line-height:1.36; }
-  .insight .dot{ flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--amber); box-shadow:0 0 12px var(--amber); }
-  .insight.win .dot{ background:var(--aurora); box-shadow:0 0 12px var(--aurora); }
-  .insight.miss .dot{ background:var(--honey); box-shadow:0 0 12px var(--honey); }
-  .insight code{ font-family:var(--mono); font-size:.9em; letter-spacing:.05em; background:rgba(0,0,0,.30); padding:1px 6px; border-radius:5px; color:var(--honey); }
 
   .controls{ flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; }
   .group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -248,14 +239,12 @@
     .app{
       gap:12px;
       grid-template-columns:minmax(0,900px) var(--rail-w);
-      grid-template-rows:auto minmax(0,1fr);
+      grid-template-rows:minmax(0,1fr);
       grid-template-areas:
-        "insight dock"
-        "board   dock";
+        "board dock";
       justify-content:center;
     }
     .topbar{ display:none; }                        /* reclaim the height; count mirrors into the rail header */
-    .insight{ min-height:0; }
     .dock{ max-height:100%; height:auto; align-self:center; gap:var(--sp-3); }   /* float the rail as a content-sized card centered in the column, not a full-height slab (kills the mid-rail void) */
     .dock .controls{ display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-2); align-content:start; }
     .dock .group{ display:contents; }
@@ -284,38 +273,56 @@
     .railfoot{ display:block; margin-top:0; padding-top:var(--sp-2); border-top:none;
       font-size:11.5px; letter-spacing:.05em; font-weight:600; color:var(--ink-faint); text-align:center; }
   }
-  /* LEARN (Push 2): the story panel. Play stays the untouched sandbox; Learn swaps the control
-     rows for a narration strip + chapter dots + exactly one spotlighted lever. */
+  /* LEARN: the board takes the stage; the lesson collapses to a slim frosted bottom bar. The sandbox
+     control rows stay in the DOM (hidden) so a chapter can BORROW a lever into #learnstage. */
   .modeseg{ flex:0 0 auto; }
-  .app.learn .insight{ display:none; }
-  .app.learn .dock .controls{ display:none; }     /* hides the main row AND optsrow/labrow */
+  .app.learn .dock .controls{ display:none; }     /* hide the main row AND optsrow/labrow */
   .learnrow{ display:none; flex-direction:column; gap:var(--sp-2); }
   .app.learn .learnrow{ display:flex; }
   @media (orientation:portrait){
-    .app.learn .dock{ max-height:min(54vh,430px); }  /* the story needs a little more shelf than the sandbox */
+    .app.learn{ gap:8px; }                                   /* board on top, the bar hugs it */
+    .app.learn .dock{ max-height:none; overflow:visible; }   /* portrait: content-sized bottom bar, never a scrolling shelf */
   }
   @media (orientation:landscape){
-    .app.learn{ --rail-w:clamp(280px,38vw,400px); }  /* the story rail runs wider than the sandbox rail */
-    .app.learn .railhead, .app.learn .railfoot{ display:none; }  /* brand yields to the story */
-    .app.learn .learntext{ font-size:13.5px; }
+    /* keep the base side-rail so the board stays FULL-HEIGHT. A stacked bottom bar would crush the board
+       below measure()'s 240px canvas floor on a short landscape phone and clip the bins (overflow:hidden).
+       The rail just runs a touch wider for the story. */
+    .app.learn{ --rail-w:clamp(288px,40vw,420px); }
+    .app.learn .railhead, .app.learn .railfoot{ display:none; }
   }
-  .learnhead{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-  .learnkicker{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--aurora); font-weight:700; }
-  .dots{ display:flex; align-items:center; }
-  .dots button{ min-height:32px; min-width:24px; padding:0; background:none; border:none; border-radius:50%; }
-  .dots button::after{ content:''; display:block; margin:0 auto; width:9px; height:9px; border-radius:50%;
-    background:rgba(255,255,255,.14); box-shadow:inset 0 0 0 1px var(--line); transition:transform .2s var(--ease-settle), background .2s; }
-  .dots button.done::after{ background:color-mix(in srgb, var(--aurora) 60%, transparent); box-shadow:none; }
-  .dots button.now::after{ background:var(--aurora); box-shadow:0 0 10px var(--aurora); transform:scale(1.3); }
-  .learntext{ margin:0; font-size:14px; line-height:1.5; font-weight:600; padding:0 2px; }
-  .learndone{ margin:0; font-size:12.5px; font-weight:700; color:var(--aurora); padding:0 2px; display:none; }
+  /* progress strip: equal-width ticks; only the current one spends a label row */
+  .learnprog{ display:flex; align-items:flex-end; gap:5px; padding:0 2px; }
+  .ptick{ flex:1 1 0; min-width:0; min-height:24px; padding:0; background:none; border:none; display:flex; flex-direction:column; gap:4px; cursor:pointer; }
+  .ptick .pseg{ width:100%; height:4px; border-radius:999px; background:color-mix(in srgb, var(--ink-faint) 42%, transparent); transition:background .3s, box-shadow .3s; }
+  .ptick.done .pseg{ background:color-mix(in srgb, var(--aurora) 60%, transparent); }
+  .ptick.now .pseg{ background:var(--aurora); box-shadow:0 0 10px color-mix(in srgb, var(--aurora) 60%, transparent); }
+  .ptick.locked{ cursor:default; }
+  .ptick.locked .pseg{ background:color-mix(in srgb, var(--ink-faint) 20%, transparent); }
+  .ptick .plabel{ font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--aurora); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .learntext{ margin:0; font-size:15px; line-height:1.5; font-weight:600; padding:0 2px; }
+  .learnpip{ font-size:11px; font-weight:700; color:var(--ink-faint); font-variant-numeric:tabular-nums; letter-spacing:.08em; text-align:right; padding:0 2px; }
+  .learnpip:empty{ display:none; }
+  .learndone{ margin:0; font-size:13px; font-weight:700; color:var(--aurora); padding:0 2px; display:none; }
   .learndone.on{ display:block; }
   .learnstage{ display:none; flex-direction:column; gap:var(--sp-2); }
   .learnstage.on{ display:flex; }
   .learntools{ display:none; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
   .learntools.on{ display:grid; }
-  .learnnav{ display:grid; grid-template-columns:auto auto 1fr; gap:var(--sp-2); }
+  .learnnav{ display:block; }
+  .learnnav #lnext{ width:100%; min-height:52px; }
+  .learnnav #lnext.hide{ display:none; }
+  /* Learn-only corner pills on the board: a kid can step Back or Quit to Play, but never click past the lesson */
+  .learnback,.learnquit{ position:absolute; top:10px; z-index:6; display:none; min-height:34px; padding:7px 13px;
+    font-size:12.5px; font-weight:700; color:var(--ink-dim); border-radius:999px; cursor:pointer;
+    background:var(--glass); backdrop-filter:blur(10px) saturate(1.05); -webkit-backdrop-filter:blur(10px) saturate(1.05);
+    border:1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+  .learnback{ left:10px; } .learnquit{ right:10px; }
+  .app.learn .learnquit{ display:block; }
+  .app.learn .learnback.show{ display:block; }
   .spotlight{ border-color:color-mix(in srgb, var(--aurora) 65%, transparent) !important; animation:spot 1.7s ease-in-out infinite; }
+  .learnrow.nudge1 .spotlight{ animation-duration:.85s; }
+  .learnrow.nudge2 .spotlight, .learnrow.nudge2 .learntools button{ animation:wiggle .5s ease-in-out infinite; }
+  @keyframes wiggle{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-3px); } 75%{ transform:translateX(3px); } }
   @keyframes spot{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--aurora) 40%, transparent); } 50%{ box-shadow:0 0 0 9px transparent; } }
 
   /* ZEN (watch mode): a drawaurora-style dissolve. The whole control layer fades to nothing and
@@ -323,7 +330,7 @@
      slips away after a few still seconds so the world is unobstructed. */
   .app{ transition:opacity .8s ease; }
   body.zen .app{ opacity:0; pointer-events:none; }
-  body.zen .topbar, body.zen .cabinet, body.zen .insight, body.zen .dock{ pointer-events:none; }
+  body.zen .topbar, body.zen .cabinet, body.zen .dock{ pointer-events:none; }
   #zen{ border-color:transparent; }   /* Zen matches Minimal in the modes footer: quiet, borderless at rest */
   .zenbar{ position:fixed; z-index:40; left:50%; bottom:max(22px,env(safe-area-inset-bottom)); transform:translateX(-50%);
     display:none; align-items:center; gap:8px; padding:7px 8px 7px 16px;
@@ -339,7 +346,7 @@
      one slim always-there icon bar rides the bottom (it dims when idle). The big Options / Lab panels
      pop up above the bar as sheets. Works in both orientations; the board is transparent, so pegs and
      marbles sit directly on the sky, sea and sand. */
-  body.minimal .dock, body.minimal .topbar, body.minimal .insight{ display:none; }
+  body.minimal .dock, body.minimal .topbar{ display:none; }
   body.minimal .app{
     padding:max(6px,env(safe-area-inset-top)) 6px calc(62px + env(safe-area-inset-bottom, 0px)) 6px;
     grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); grid-template-areas:"board"; }
@@ -386,6 +393,7 @@
     .veil-bell{ animation:none; filter:none; } .veil-bell-line{ animation:none; stroke-dashoffset:0; }
     .veil-cta{ opacity:.85; }
     .spotlight{ animation:none; box-shadow:0 0 0 2px color-mix(in srgb, var(--aurora) 40%, transparent); }
+    .learnrow.nudge2 .spotlight, .learnrow.nudge2 .learntools button{ animation:none; }
     *{ transition:none !important; }
   }
 </style>
@@ -427,11 +435,9 @@
   <div class="cabinet">
     <canvas id="board"></canvas>
     <div class="hint" id="hint">Drop one ball and watch it. Then pour a hundred.</div>
-  </div>
-
-  <div class="insight" id="insight" aria-live="polite">
-    <span class="dot"></span>
-    <span id="insight-text">Drop a ball. No one can guess where one ball lands. But a thousand balls always make the same hill.</span>
+    <!-- Learn-only corner controls: a kid can step back or quit to Play, but can never click past the lesson -->
+    <button class="learnback" id="learnback" type="button">Back</button>
+    <button class="learnquit" id="learnquit" type="button">Quit to Play</button>
   </div>
 
   <div class="dock" id="dock">
@@ -502,21 +508,17 @@
   <!-- Learn layer (Push 2): a story panel driven by a thin controller over the same engine.
        Chapters borrow the real dock controls into #learnstage, one spotlighted at a time. -->
   <div class="learnrow" id="learnrow">
-    <div class="learnhead">
-      <span class="learnkicker" id="learnkicker"></span>
-      <div class="dots" id="learndots"></div>
-    </div>
+    <div class="learnprog" id="learnprog"></div>
     <p class="learntext" id="learntext" aria-live="polite"></p>
     <p class="learndone" id="learndone"></p>
+    <div class="learnpip" id="learnpip"></div>
     <div class="learnstage" id="learnstage"></div>
     <div class="learntools" id="learntools">
       <button id="ldrop1">Drop 1</button>
       <button id="ldrop100">Pour 100</button>
     </div>
     <div class="learnnav">
-      <button id="lback">Back</button>
-      <button id="lskip">Skip</button>
-      <button id="lnext" class="primary">Let me try</button>
+      <button id="lnext" class="primary">Next</button>
     </div>
   </div>
 
@@ -583,7 +585,7 @@
              pegGlow:new Float32Array(S.rows*(S.rows+1)/2) /* per-peg glance glow, indexed r*(r+1)/2+i */ };
   }
   let boards=[], primary=null, ballId=0;
-  let guessBin=null, awaitingGuess=false;
+  let guessBin=null, awaitingGuess=false, guessCue=null;   // guessCue = the on-board feedback after a Guess miss (Play only)
   let geoRoot={}, interacted=false, spriteCache={};
 
   function buildBoards(){
@@ -736,10 +738,10 @@
     if(b.r<S.rows){ const p=pegPos(b.board,b.r,b.i); return { x:p.x+(Math.random()*2-1)*g.dx*0.08, y:p.y }; }
     return { x:binX(b.board,b.bin), y:g.binBottom-g.ballR }; }
   // Per-segment duration jitter desyncs neighbouring balls so a flood fans into a curtain, not a snake.
-  function startSeg(b,first){ const t=segTarget(b); b.seg={ ax:b.x, ay:b.y, bx:t.x, by:t.y, t:0, dur:(first?0.34:0.30)*b.hop*(0.82+Math.random()*0.36) }; }
+  function startSeg(b,first){ const t=segTarget(b); b.seg={ ax:b.x, ay:b.y, bx:t.x, by:t.y, t:0, dur:(first?0.34:0.30)*b.hop*(0.82+Math.random()*0.36)*(b.hero?3:1) }; }
   // A wild ball walks the pegs to bin, then LEAPS sideways to its true outlier slot — the visual
   // of a broken step size.
-  function startLeap(b){ const g=b.board.geo; b.seg={ ax:b.x, ay:b.y, bx:binX(b.board,clampSlot(b.land)), by:g.binBottom-g.ballR, t:0, dur:0.26 }; b.leaping=true; }
+  function startLeap(b){ const g=b.board.geo; b.seg={ ax:b.x, ay:b.y, bx:binX(b.board,clampSlot(b.land)), by:g.binBottom-g.ballR, t:0, dur:0.26*(b.hero?3:1) }; b.leaping=true; }
 
   // heavy-tailed signed jump, in slot units (Pareto tail, alpha≈1.3 => genuinely fat)
   function levyJump(sd){ const sign=Math.random()<0.5?-1:1, u=Math.max(1e-3,Math.random());
@@ -766,7 +768,7 @@
     }
     const land=bin+jump, info=binInfo(land);
     const b={ id:++ballId, board, seq, bin, jump, land, r:0, i:0,
-      tracked:!!o.tracked, guessEval:!!o.guessEval, glow:info.glow>0, leapt:(jump===0),
+      tracked:!!o.tracked, guessEval:!!o.guessEval, hero:!!o.hero, glow:info.glow>0, leapt:(jump===0),
       x:g.cx+(Math.random()*2-1)*g.dx*0.85, y:g.apexY-g.dropH-Math.random()*g.dropH*0.5,
       squash:0, ox:0, oy:0, path:[], trail:[], hop:0.72+Math.random()*0.6, bounced:false, bouncing:false };
     startSeg(b,true); board.balls.push(b);
@@ -780,7 +782,7 @@
         : s.ay+(s.by-s.ay)*(b.r<S.rows? t*t : Math.pow(t,2.2));    // the last drop falls heavier
     // light trail behind every falling ball (short = motion blur; a leap gets the long comet).
     // Gated by crowd size + adaptive quality; when gated, old tails burn off point by point.
-    if(!reduce && !S.lite && b.board.balls.length<150){ b.trail.push({x:b.x,y:b.y}); const cap=b.leaping?14:8; if(b.trail.length>cap) b.trail.shift(); }
+    if(!reduce && !S.lite && b.board.balls.length<150){ b.trail.push({x:b.x,y:b.y}); const cap=b.hero?20:(b.leaping?14:8); if(b.trail.length>cap) b.trail.shift(); }
     else if(b.trail.length) b.trail.shift();
     b.squash=Math.max(0,b.squash-dt*6); b.ox*=0.82; b.oy*=0.82; // collision offset springs back to the path
     if(s.t>=1){ b.x=s.bx; b.y=s.by;
@@ -801,7 +803,7 @@
   function settle(b){
     const board=b.board, n=S.rows;
     board.bins.set(b.land,(board.bins.get(b.land)||0)+1); board.total++;
-    if(b.jump!==0) board.wildLanded++;
+    if(b.jump!==0){ board.wildLanded++; if(learn.active) anno.tags.wildLand={slot:b.land,life:1,board:board}; }   // Learn-only: tag the wild landing WITH its board so drawAnnotations glows the right machine (in compare mode the wild is the rigged board, not primary)
     landFX(b);
     const mu=n*board.bias, sd=Math.sqrt(Math.max(1e-6, n*board.bias*(1-board.bias)));
     const dev=Math.abs(b.land-mu)/sd; if(dev>board.farSigma) board.farSigma=dev;
@@ -848,7 +850,7 @@
   function celebrate(board,x,y){ if(reduce) return; const rc=CYAN.join(','), wc=HONEY.join(','); for(let k=0;k<26;k++){ const a=Math.random()*6.283, sp=70+Math.random()*160; board.parts.push({ x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-50,life:.9+Math.random()*.5,max:1.4,r:2.2+Math.random()*1.7,rgb:Math.random()<.5?rc:wc }); } }
 
   /* ---------------- insight ---------------- */
-  function setInsight(t,tone){ document.getElementById('insight').className='insight'+(tone?(' '+tone):''); document.getElementById('insight-text').innerHTML=t; }
+  function setInsight(){}   // insight strip retired: Play stays clean, Learn teaches via on-board labels + beats
   function insightSingle(b){
     const path='<code>'+b.path.join(' ')+'</code>';
     if(b.jump!==0){ const mu=S.rows*b.board.bias, sd=Math.sqrt(Math.max(1e-6,S.rows*b.board.bias*(1-b.board.bias))), sig=Math.abs(b.land-mu)/sd;
@@ -860,7 +862,7 @@
   function evalGuess(landing){
     awaitingGuess=false;
     if(landing===guessBin){ setInsight('You nailed it! Bin <code>'+guessBin+'</code>! That bin only had about a <b>'+(pmf(S.rows,guessBin)*100).toFixed(1)+'%</b> chance. Tap to guess again.','win'); celebrate(primary,binX(primary,clampSlot(guessBin)),primary.geo.binBottom-24); chord(); }
-    else setInsight('It landed in slot <code>'+landing+'</code>, not <code>'+guessBin+'</code>. One ball is impossible to call. That is the whole idea. Try again.','miss');
+    else guessCue={slot:landing, guess:guessBin, life:1};   // on-board miss cue: honey-flash the true landing bin, the cyan marker still shows their pick
   }
   function biasMsg(){ if(Math.abs(S.bias-0.5)<0.001){ setInsight('The pegs are fair again. A balanced coin.',''); return; }
     setInsight('The hill now leans '+(S.bias>0.5?'right':'left')+'. But it is still a <b>bell</b>. A leaning coin <b>moves</b> the peak; it does not fatten the tails. Watch the far-out number stay put.',''); }
@@ -1369,6 +1371,7 @@
     // backdrop. We paint only the machine — pegs, marbles, histogram, bell — over the glass.
     const {w,h}=geoRoot; ctx.clearRect(0,0,w,h);
     for(const b of boards) drawBoard(b);
+    if(learn.active) drawAnnotations(dt);   // Learn-only seaside labels on the board (Play never enters here)
     if(boards.length>1){ const x=boards[1].geo.x0-geoRoot.gap/2; ctx.strokeStyle='rgba(200,220,245,0.14)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,10); ctx.lineTo(x,h-10); ctx.stroke(); }
   }
   function drawBoard(board){
@@ -1450,7 +1453,7 @@
       if(b.trail.length>1){
         // one additive polyline per ball, old half faint + new half bright so the tail tapers;
         // coloured by the ball's LIVE slot so the trail teaches the same colour lesson as the marble
-        const tc=binInfo(ballColorSlot(b)).rgb.join(','), L=b.trail.length, mid=L>>1, hot=b.leaping?0.5:0.3;
+        const tc=binInfo(ballColorSlot(b)).rgb.join(','), L=b.trail.length, mid=L>>1, hot=b.hero?0.75:(b.leaping?0.5:0.3);
         ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.lineCap='round'; ctx.lineJoin='round';
         ctx.strokeStyle='rgba('+tc+','+(hot*0.35)+')'; ctx.lineWidth=g.ballR*0.5;
         ctx.beginPath(); ctx.moveTo(b.trail[0].x,b.trail[0].y); for(let i=1;i<=mid;i++) ctx.lineTo(b.trail[i].x,b.trail[i].y); ctx.stroke();
@@ -1468,6 +1471,11 @@
 
     // guess marker
     if(S.guessMode && single && guessBin!=null){ const gx=binX(board,guessBin), y=g.binTop-19; ctx.fillStyle='rgba('+CYAN.join(',')+',0.95)'; ctx.beginPath(); ctx.moveTo(gx-7,y-8); ctx.lineTo(gx+7,y-8); ctx.lineTo(gx,y+2); ctx.closePath(); ctx.fill(); }
+
+    // guess result cue on a MISS: honey column + marker at the bin the ball actually reached (the cyan marker above still shows the kid's pick), fading out
+    if(guessCue && single && S.guessMode){ const k=Math.max(0,Math.min(1,guessCue.life)), hc=HONEY.join(','), lx=binX(board,clampSlot(guessCue.slot));
+      ctx.fillStyle='rgba('+hc+','+(0.20*k)+')'; rr(lx-g.dx*0.44,g.binTop,g.dx*0.88,g.binAreaH,7); ctx.fill();
+      ctx.fillStyle='rgba('+hc+','+(0.95*k)+')'; const cy=g.binTop-19; ctx.beginPath(); ctx.moveTo(lx-7,cy-8); ctx.lineTo(lx+7,cy-8); ctx.lineTo(lx,cy+2); ctx.closePath(); ctx.fill(); }
 
     // board label (side-by-side)
     if(g.labelH){ ctx.save(); ctx.textAlign='center'; ctx.font=UIFONT; ctx.fillStyle=board.rigged?'rgba('+AMBER.join(',')+',0.95)':'rgba('+CYAN.join(',')+',0.95)';
@@ -1491,13 +1499,19 @@
       for(const p of board.parts){ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=360*dt; } if(board.parts.length) board.parts=board.parts.filter(p=>p.life>0);
       const pg=board.pegGlow; if(pg){ const dk=Math.exp(-dt*5); for(let k=0;k<pg.length;k++){ if(pg[k]>0.02) pg[k]*=dk; else if(pg[k]) pg[k]=0; } }
     }
-    // Learn gate: in tinker, a cheap completeWhen predicate lights up Next the moment the
-    // kid's experiment actually happened (balls landed, lever moved). Skip never waits on it.
+    // Learn gate: on a hands beat, the honest ready() predicate opens the gate the moment the kid's
+    // experiment actually happened. If they stall, a nudge escalates (11s arrow, 25s wiggle + plainer
+    // caption) and at 40s or 3 honest pours the gate quietly opens anyway, so no kid is ever trapped.
+    // All timing is dt-accumulated, so it respects the paused-sim clock and the manual stepper.
     if(learn.active && learn.phase==='tinker' && !learn.doneNow){
       const ch=CHAPTERS[learn.idx];
-      if(ch.ready && ch.ready()){ learn.doneNow=true; learn.completed[learn.idx]=true; renderLearn(); saveProgress(); }
+      if(ch.ready && ch.ready()) openGate();
+      else if(!ch.noTinker){ learn.idle+=dt;
+        if(learn.idle>=40 || learn.pours>=3) openGate();
+        else { const stage = learn.idle>=25?2 : learn.idle>=11?1 : 0; if(stage!==learn.nudge){ learn.nudge=stage; renderLearn(); } } }
     }
     }
+    if(guessCue){ guessCue.life-=dt/1.2; if(guessCue.life<=0) guessCue=null; }   // Play guess-miss cue fades over ~1.2s
     draw(dt);
   }
   function frame(now){ const ms=now-lastT; let dt=ms/1000; lastT=now; if(dt>0.05) dt=0.05;
@@ -1526,7 +1540,7 @@
   rainBtn.addEventListener('click',()=>{ firstTouch(); ensureAudio(); S.rainOn=!S.rainOn; if(S.rainOn){ S.guessMode=false; syncGuess(); } rainBtn.setAttribute('aria-pressed',S.rainOn?'true':'false'); rainFace.innerHTML=S.rainOn?'<span class="live"></span>Raining':'Rain'; });
   const guessBtn=document.getElementById('guess');
   function syncGuess(){ guessBtn.setAttribute('aria-pressed',S.guessMode?'true':'false'); }
-  guessBtn.addEventListener('click',()=>{ if(S.compare) return; firstTouch(); S.guessMode=!S.guessMode; if(S.guessMode){ S.rainOn=false; rainBtn.setAttribute('aria-pressed','false'); rainFace.textContent='Rain'; guessBin=null; awaitingGuess=false; setInsight('Tap the bin where you think the next ball will land.',''); } else setInsight('Drop a ball. No one can guess where one ball lands. But a thousand always make the same hill.',''); syncGuess(); });
+  guessBtn.addEventListener('click',()=>{ if(S.compare) return; firstTouch(); guessCue=null; S.guessMode=!S.guessMode; if(S.guessMode){ S.rainOn=false; rainBtn.setAttribute('aria-pressed','false'); rainFace.textContent='Rain'; guessBin=null; awaitingGuess=false; setInsight('Tap the bin where you think the next ball will land.',''); } else setInsight('Drop a ball. No one can guess where one ball lands. But a thousand always make the same hill.',''); syncGuess(); });
   document.getElementById('reset').addEventListener('click',()=>{ buildBoards(); setInsight('Cleared. One ball is a mystery. A thousand make a hill.',''); });
 
   toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers show how many <b>paths</b> reach each bin. Lots of ways to the middle. Only <b>one</b> way to each edge.',''); });
@@ -1623,7 +1637,7 @@
 
   cvs.addEventListener('pointerdown',e=>{ if(!S.guessMode||awaitingGuess||S.compare) return; firstTouch(); ensureAudio();
     const rc=cvs.getBoundingClientRect(), x=e.clientX-rc.left, g=primary.geo; let b=Math.round((x-g.cx)/g.dx+g.n/2); b=Math.max(0,Math.min(S.rows,b));
-    guessBin=b; awaitingGuess=true; setInsight('You picked bin <code>'+b+'</code>. Dropping one ball&hellip;',''); spawnBall(primary,{guessEval:true}); });
+    guessBin=b; awaitingGuess=true; guessCue=null; spawnBall(primary,{guessEval:true}); });
 
   /* ---------------- LEARN (Push 2): the story journey ---------------- */
   // A thin controller over the SAME engine. Chapters script the existing levers through
@@ -1646,60 +1660,120 @@
   function stopModes(){ if(S.rainOn){ S.rainOn=false; rainBtn.setAttribute('aria-pressed','false'); rainFace.textContent='Rain'; }
     if(S.guessMode){ S.guessMode=false; awaitingGuess=false; syncGuess(); } }
 
-  // Chapters: watch (auto demo) then tinker (one spotlighted lever + a completion gate).
-  // stage = control ids borrowed from the dock while the chapter runs; spot = THE control.
-  // Copy rules: short warm sentences a 7 year old reads alone, seaside thread, no em dashes.
+  // ============ LEARN: staged reveal + on-board labels (Learn only) ============
+  // The board takes the stage. A chapter plays as ordered BEATS: each beat is one short line and
+  // one thing on the board. A beat's on() calls beatCtx: hero (one slow marble), crowd (a wave),
+  // annotate (seaside labels), lever (the ONLY sanctioned lever-scripting path). Play runs none of this.
+  const anno={ tags:{} };
+  function clearAnnotations(){ anno.tags={}; }
+  function annotate(){ for(let i=0;i<arguments.length;i++){ const k=arguments[i]; if(!anno.tags[k]) anno.tags[k]={}; } }
+  function heroBall(){ if(reduce||S.lite) dropMany(1); else spawnBall(primary,{hero:true}); }   // one slow bright plinking marble
+  function crowd(n){ dropMany(n); }   // pump meters pending into a curtain over frames = a wave, not an instant dump
+  const beatCtx={ hero:heroBall, crowd:crowd, annotate:annotate, lever:function(k,v){ setLever(k,v); } };
+  const noop=function(){};
+  const replayCtx={ hero:noop, crowd:noop, annotate:annotate, lever:noop };   // Back/replay: reapply on-board LABELS only, never re-pour or re-lever
+
+  // Pre-rendered pill sprites (one per label string; no per-frame gradients), aurora-tinted, blitted.
+  const ANNOFONT='700 12px system-ui, -apple-system, sans-serif', annoSprites={};
+  function rrp(g,x,y,w,h,r){ r=Math.min(r,w/2,h/2); g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+  function annoPill(text){
+    if(annoSprites[text]) return annoSprites[text];
+    const mc=document.createElement('canvas'), mg=mc.getContext('2d'); mg.font=ANNOFONT;
+    const tw=Math.ceil(mg.measureText(text).width), padx=9, w=tw+padx*2, h=23;
+    const c=document.createElement('canvas'); c.width=Math.round(w*DPR); c.height=Math.round(h*DPR);
+    const g=c.getContext('2d'); g.scale(DPR,DPR);
+    g.fillStyle='rgba(10,18,32,0.60)'; rrp(g,0.5,0.5,w-1,h-1,h/2); g.fill();
+    g.strokeStyle='rgba('+CYAN.join(',')+',0.55)'; g.lineWidth=1; rrp(g,0.5,0.5,w-1,h-1,h/2); g.stroke();
+    g.font=ANNOFONT; g.textAlign='center'; g.textBaseline='middle';
+    g.fillStyle='rgba('+CYANS.join(',')+',0.96)'; g.fillText(text, w/2, h/2+0.5);
+    annoSprites[text]={ canvas:c, w, h }; return annoSprites[text];
+  }
+  function drawPill(text,cx,topY,alpha){ const a=Math.max(0,Math.min(1,alpha)); if(a<=0) return; const s=annoPill(text);
+    ctx.save(); ctx.globalAlpha=a; ctx.drawImage(s.canvas, cx-s.w/2, topY, s.w, s.h); ctx.restore(); }
+  function drawAnnotations(dt){
+    const g=primary.geo; if(!g||!g.w) return; const T=anno.tags, lo=domLo(), hi=domHi(), yLab=g.binTop-27;
+    if(T.home) drawPill('home', binX(primary, clampSlot(primary.bias*S.rows)), yLab, 0.95);
+    if(T.rare){ drawPill('rare', binX(primary, lo+0.5), yLab, 0.5); drawPill('rare', binX(primary, hi-0.5), yLab, 0.5); }
+    if(T.wildLand){ const wl=T.wildLand, wb=(wl.board&&wl.board.geo&&wl.board.geo.w)?wl.board:primary, wg=wb.geo, x=binX(wb, clampSlot(wl.slot)), y=wg.binBottom-wg.ballR*4;
+      if(!S.lite){ ctx.save(); ctx.globalCompositeOperation='lighter'; const rad=reduce? wg.ballR*2.6 : wg.ballR*(2.4+(1-wl.life)*2.2);
+        ctx.strokeStyle='rgba('+CYAN.join(',')+','+(0.6*Math.max(0,wl.life))+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,rad,0,6.2832); ctx.stroke(); ctx.restore(); }
+      drawPill('wild jump', x, wg.binTop-27, Math.min(1, wl.life+0.2));
+      wl.life-=dt/1.6; if(wl.life<=0) delete T.wildLand; }
+    if(boards.length>1){ const rb=boards[1], rg=rb.geo; if(rg&&rg.w){
+      if(T.treasure) drawPill('treasure', binX(rb, hi-0.5), rg.binTop-27, 0.9);
+      if(T.danger) drawPill('danger', binX(rb, lo+0.5), rg.binTop-27, 0.9); } }
+  }
+
+  // Chapters: an ordered list of BEATS. Per-chapter setup/tinkerSetup/stage/spot/tools/begin/ready/
+  // done/noTinker/hint sit at top level (the last, hands:true beat uses them). Copy rules: short warm
+  // sentences a 7 year old reads alone, seaside thread, bold ONE idea, no em dashes, no sigma.
   const CHAPTERS=[
-    { title:'The everyday hill',
-      watch:'Watch the marbles fall. Every marble bounces left or right by pure luck. One marble is a mystery. But together they always pile into a <b>hill</b>. Our seaside town knows this shape. Most waves are middle-sized. Big ones are rare. Tiny ones are rare too.',
-      tinker:'Your turn. Pour 100 marbles. Watch the same hill grow back all by itself.',
-      done:'There it is. The hill always comes back.',
-      setup(){ fairRig(); setLever('rows',12); buildBoards(); }, demo(){ dropMany(150); },
+    { title:'The everyday hill', short:'The hill',
+      setup(){ fairRig(); setLever('rows',12); buildBoards(); },
       tinkerReset:true, tools:true, spot:'ldrop100',
-      ready(){ return primary.total>=100; } },
-    { title:'Steps from the middle',
-      watch:'The top of the hill is home. We count distance in <b>steps from home</b>. One step away happens a lot. Two steps away is rare. Three steps away almost never happens. Grown-ups call one step a sigma. It is written &sigma;. That is the whole secret.',
-      tinker:'Slide Rows, then pour. More rows means more bounces, so the marbles spread across <b>more bins</b>. Fewer rows and they crowd into just a few.',
-      done:'You changed the hill. The steps changed with it.',
-      setup(){ fairRig(); setLever('rows',10); buildBoards(); }, demo(){ dropMany(150); },
-      stage:['rows'], spot:'rows', tools:true,
-      begin(){ this.r0=S.rows; },
-      ready(){ return S.rows!==this.r0 && primary.total>=40; } },
-    { title:'A leaning hill',
-      watch:'We tilted the machine so marbles drift right. The hill slides over. But look at its shape. Still a hill. Like a windy week at the beach. The waves push one way, but they are still everyday waves.',
-      tinker:'Slide Lean, then pour. The top of the hill moves. Now peek at <b>far-out balls</b> below. It stays tiny. Leaning never makes giant waves.',
-      done:'Lean moves the hill. It does not make monsters.',
-      setup(){ fairRig(); setLever('rows',12); buildBoards(); }, demo(){ setLever('bias',0.7); dropMany(150); },
+      done:'There it is. The hill always comes back.',
+      ready(){ return primary.total>=100; },
+      hint:'Tap Pour 100 and watch the hill grow back.',
+      beats:[
+        { text:'Watch one marble fall. It bounces left or right by pure luck. Nobody can say where it lands.', on:function(c){ c.hero(); } },
+        { text:'Now a whole crowd falls. Each one is its own little mystery.', on:function(c){ c.crowd(60); } },
+        { text:'Look what they make together. Tall in the middle, tiny at the sides. That pile is a <b>hill</b>.', on:function(c){ c.crowd(90); c.annotate('home'); } },
+        { text:'Close to the middle happens a lot. Far out is rare. Way out almost never.', on:function(c){ c.annotate('home','rare'); } },
+        { text:'Your turn. Pour a hundred and watch the hill grow back all by itself.', hands:true }
+      ] },
+    { title:'Push the hill around', short:'Push it',
+      setup(){ fairRig(); setLever('rows',12); buildBoards(); },
       tinkerSetup(){ setLever('bias',0.5); buildBoards(); },
       stage:['bias','tailstat'], spot:'bias', tools:true,
-      ready(){ return Math.abs(S.bias-0.5)>=0.09 && primary.total>=60; } },
-    { title:'The giant wave',
-      watch:'Once in a long while, the sea sends a <b>giant wave</b>. Nobody knows when. We gave a few marbles wild jumps. Watch closely. One will leap far past the hill, to a place luck alone could never reach.',
-      tinker:'Raise Wild jumps, then pour until a marble leaps. Then tap Log Y. The hill fades to nothing at the edges, but the wild marbles keep landing far out. They do not fade away.',
-      done:'You made a giant wave. Rare, but huge.',
-      setup(){ fairRig(); setLever('rows',12); buildBoards(); }, demo(){ setLever('wild',0.1); dropMany(150); },
+      done:'Lean moves the hill. It never makes monsters.',
+      ready(){ return Math.abs(S.bias-0.5)>=0.09 && primary.total>=60; },
+      hint:'Drag <b>Lean</b> to one side, then tap Pour 100.',
+      beats:[
+        { text:'We can tilt the whole machine so marbles drift one way.', on:function(c){ c.lever('bias',0.7); c.crowd(120); c.annotate('home'); } },
+        { text:'The whole hill slides over. But look. It is still a <b>hill</b>. Same shape, new spot.', on:function(c){ c.crowd(60); } },
+        { text:'Slide <b>Lean</b> and pour. The peak moves, but peek at the far-out number. It stays tiny. Leaning never makes giant waves.', hands:true }
+      ] },
+    { title:'The giant wave', short:'Giant wave',
+      setup(){ fairRig(); setLever('rows',12); buildBoards(); },
       tinkerSetup(){ setLever('wild',0); setLever('logScale',false); buildBoards(); },
       stage:['wild','logscale'], spot:'wild', tools:true,
+      done:'You made a giant wave. Rare, but huge.',
       // gate on the REAL event: a marble whose path took a wild jump actually landed
       // (farSigma alone can be banked by a fair end-bin ball, a false giant wave)
-      ready(){ return S.wild>0 && primary.total>=50 && primary.wildLanded>0; } },
-    { title:'Two tails',
-      watch:'Two machines now. The left one plays fair. The right one has wild jumps. Look at the middles. Almost twins. Look at the edges. Not twins at all.',
-      tinker:'Pour into both. On the wild machine, a far jump one way is a giant wave that smashes boats. A far jump the other way is <b>treasure</b> washing ashore. The same wildness makes both. In a wild world, the rare thing matters most.',
-      done:'Lucky tails and scary tails. You found them both.',
-      setup(){ fairRig(); setLever('rows',12); setLever('wild',0.12); setLever('compare',true); }, demo(){ dropMany(120); },
+      ready(){ return S.wild>0 && primary.total>=50 && primary.wildLanded>0; },
+      hint:'Turn up <b>Wild jumps</b>, then pour until a marble leaps far out.',
+      beats:[
+        { text:'Once in a long while, the sea sends a <b>giant wave</b>. Nobody knows when.', on:function(c){ c.lever('wild',0.1); c.crowd(120); } },
+        { text:'We gave a few marbles a wild jump. Watch closely.', on:function(c){ c.crowd(60); } },
+        { text:'There. One leaped far past the hill, to a place luck alone could never reach.' },
+        { text:'That is a giant wave. Rare, but huge. It does not fit the tidy hill at all.', on:function(c){ c.annotate('rare'); } },
+        { text:'Turn up <b>Wild jumps</b> and pour until a marble leaps far out. Then tap <b>Log Y</b> to see the tail that will not fade.', hands:true }
+      ] },
+    { title:'Two tails', short:'Two tails',
+      setup(){ fairRig(); setLever('rows',12); setLever('wild',0.12); setLever('compare',true); },
       tools:true, spot:'ldrop100',
-      // baseline counts settled + airborne + queued, so the watch demo's still-falling
-      // balls cannot complete the gate for a fast-tapping kid: only NEW pours count
+      done:'Lucky tails and scary tails. You found them both.',
+      // baseline counts settled + airborne + queued on the rigged board, so the watch demo's
+      // still-falling balls cannot complete the gate for a fast-tapping kid: only NEW pours count
       begin(){ const b=boards.length>1? boards[1]:null; this.t0=b? b.total+b.balls.length+b.pending : 0; },
-      ready(){ return boards.length>1 && boards[1].total-this.t0>=80; } },
-    { title:'Your turn',
-      watch:'You know the secret of the sea now. Most days are middle days. The rare day changes everything. So stay safe from the scary tail, and leave a little room for the lucky one. The machine is yours. Go play.',
-      setup(){ fairRig(); setLever('rows',12); buildBoards(); }, demo(){ dropMany(60); },
-      noTinker:true }
+      ready(){ return boards.length>1 && boards[1].total-this.t0>=80; },
+      hint:'Tap Pour 100 to fill both machines.',
+      beats:[
+        { text:'Two machines now. The left one plays fair. The right one has wild jumps.', on:function(c){ c.crowd(120); } },
+        { text:'Look at the middles. Almost twins. Look at the far edges. Not twins at all.', on:function(c){ c.crowd(60); } },
+        { text:'Pour into both. On the wild machine, one far jump is a giant wave that smashes boats. A far jump the other way is <b>treasure</b> washing ashore. The same wildness makes both.', on:function(c){ c.annotate('treasure','danger'); }, hands:true }
+      ] },
+    { title:'Your turn', short:'You',
+      setup(){ fairRig(); setLever('rows',12); buildBoards(); },
+      noTinker:true,
+      beats:[
+        { text:'You know the secret of the sea now. Most days are middle days. The rare day changes everything.', on:function(c){ c.crowd(60); } },
+        { text:'Stay safe from the scary tail, and leave a little room for the lucky one. The machine is yours. Go play.' }
+      ] }
   ];
 
-  const learn={ active:false, idx:0, phase:'watch', doneNow:false, completed:[], moved:[] };
+  const learn={ active:false, idx:0, beat:0, phase:'watch', doneNow:false,
+    completed:[], moved:[], entered:new Set(), idle:0, pours:0, nudge:0 };
   const appEl=document.querySelector('.app');
   // Stage plumbing: chapters BORROW the real dock controls (listeners and ids travel with the
   // node), and stageClear puts every one back exactly where it came from, in reverse order.
@@ -1715,46 +1789,84 @@
       learn.moved.push({el, parent:el.parentNode, next:el.nextSibling}); stage.appendChild(el); });
     if(ch.spot){ const el=stageEl(ch.spot); if(el) el.classList.add('spotlight'); }
   }
+  // enterBeat is the ONE funnel for moving between beats and the ONLY writer of learn.phase (derived
+  // from beat.hands, since the tick() gate + every phase-scoped CSS rule read it). It ALWAYS
+  // stageClear()s first, then runs the hands-beat setup (borrow the lever, baseline the gate) or a
+  // narration beat's on() ONCE (guarded by learn.entered so a Back step never re-pours the crowd).
+  function enterBeat(bi){
+    const ch=CHAPTERS[learn.idx], beats=ch.beats||[]; bi=Math.max(0,Math.min(beats.length-1,bi));
+    learn.beat=bi; const beat=beats[bi];
+    learn.phase = beat.hands? 'tinker':'watch';
+    learn.doneNow=false;
+    stageClear();
+    // Rebuild the on-board LABELS from scratch each entry so a Back step drops labels a later beat
+    // added. replayCtx applies ONLY annotate (hero/crowd/lever are no-ops), so nothing re-pours.
+    // Event glows (wildLand) are not in any annotate() call, so they simply re-fire on the next landing.
+    clearAnnotations();
+    for(let i=0;i<=bi;i++){ if(beats[i].on) beats[i].on(replayCtx); }
+    if(beat.hands){
+      if(ch.tinkerSetup) ch.tinkerSetup(); else if(ch.tinkerReset) buildBoards();
+      buildStage(ch); if(ch.begin) ch.begin();
+      learn.idle=0; learn.pours=0; learn.nudge=0;
+    } else {
+      const key=learn.idx+':'+bi;
+      if(!learn.entered.has(key)){ learn.entered.add(key); if(beat.on) beat.on(beatCtx); }   // real pour/lever ONLY on first entry
+    }
+    renderLearn(); saveProgress();
+  }
   function renderLearn(){
-    const ch=CHAPTERS[learn.idx], isWatch=learn.phase==='watch';
-    document.getElementById('learnkicker').textContent=ch.title;
-    const dots=document.getElementById('learndots'); dots.innerHTML='';
-    CHAPTERS.forEach((c,i)=>{ const d=document.createElement('button'); d.type='button';
-      d.setAttribute('aria-label','Chapter '+(i+1)+' of '+CHAPTERS.length+': '+c.title);
-      if(i===learn.idx) d.classList.add('now'); if(learn.completed[i]) d.classList.add('done');
-      d.addEventListener('click',()=>gotoChapter(i)); dots.appendChild(d); });
-    document.getElementById('learntext').innerHTML=isWatch? ch.watch : ch.tinker;
-    const dn=document.getElementById('learndone');
-    dn.textContent=(learn.doneNow && ch.done)? ch.done+' Tap Next.' : '';
-    dn.classList.toggle('on', !isWatch && learn.doneNow);
-    document.getElementById('learnstage').classList.toggle('on', !isWatch && learn.moved.length>0);
-    document.getElementById('learntools').classList.toggle('on', !isWatch && !!ch.tools);
-    const back=document.getElementById('lback'), skip=document.getElementById('lskip'), next=document.getElementById('lnext');
-    back.disabled = isWatch && learn.idx===0;
-    skip.textContent = learn.idx>=CHAPTERS.length-1? 'Play' : 'Skip';
-    next.textContent = isWatch? (ch.noTinker? 'Go play' : 'Let me try') : 'Next';
-    next.disabled = !isWatch && !learn.doneNow;
-    next.classList.toggle('pulse', !isWatch && learn.doneNow);
+    const ch=CHAPTERS[learn.idx], beats=ch.beats||[], beat=beats[learn.beat]||{};
+    const isTinker=learn.phase==='tinker', last=learn.beat>=beats.length-1;
+    const sendoff = last && !isTinker && (ch.noTinker || !beat.hands);
+    const row=document.getElementById('learnrow');
+
+    // progress strip: finished ticks jump back, the current is named, future ticks are LOCKED (no skip forward)
+    const prog=document.getElementById('learnprog'); prog.innerHTML='';
+    CHAPTERS.forEach((c,i)=>{ const t=document.createElement('button'); t.type='button'; t.className='ptick';
+      const done=!!learn.completed[i], now=i===learn.idx, locked=i>learn.idx && !done;
+      if(now) t.classList.add('now'); if(done) t.classList.add('done'); if(locked) t.classList.add('locked');
+      t.setAttribute('aria-label','Chapter '+(i+1)+' of '+CHAPTERS.length+': '+c.title);
+      const seg=document.createElement('span'); seg.className='pseg'; t.appendChild(seg);
+      if(now){ const lab=document.createElement('span'); lab.className='plabel'; lab.textContent=c.short||c.title; t.appendChild(lab); }
+      if(locked) t.disabled=true; else t.addEventListener('click',()=>{ if(i!==learn.idx) gotoChapter(i); });
+      prog.appendChild(t); });
+
+    // caption (+ a subtle beat pip); nudge stage 2 swaps in the plainer hint
+    document.getElementById('learntext').innerHTML = (isTinker && learn.nudge>=2 && ch.hint)? ch.hint : (beat.text||'');
+    const pip=document.getElementById('learnpip'); if(pip) pip.textContent = beats.length>1? (learn.beat+1)+' / '+beats.length : '';
+
+    // stage + tools only on the hands beat; the done line shows when the gate opens
+    document.getElementById('learnstage').classList.toggle('on', isTinker && learn.moved.length>0);
+    document.getElementById('learntools').classList.toggle('on', isTinker && !!ch.tools);
+    const dn=document.getElementById('learndone'); dn.textContent=(isTinker && learn.doneNow && ch.done)? ch.done : '';
+    dn.classList.toggle('on', isTinker && learn.doneNow && !!ch.done);
+
+    // nudge visuals live on the row (a stuck kid gets a gentle escalation, never a scold)
+    if(row){ row.classList.toggle('nudge1', isTinker && learn.nudge>=1 && !learn.doneNow);
+      row.classList.toggle('nudge2', isTinker && learn.nudge>=2 && !learn.doneNow); }
+
+    // ONE big button: hidden while a hands gate is closed (the spotlit lever + tools carry the beat),
+    // else Next (pulsing the moment the gate opens) or Go play on the send-off.
+    const next=document.getElementById('lnext');
+    next.classList.toggle('hide', isTinker && !learn.doneNow);
+    next.textContent = sendoff? 'Go play' : 'Next';
+    next.classList.toggle('pulse', sendoff || (isTinker && learn.doneNow));
+
+    // corner Back: available whenever there is a previous beat or chapter (class, so it can never leak into Play)
+    const back=document.getElementById('learnback'); if(back) back.classList.toggle('show', learn.beat>0 || learn.idx>0);
   }
   // Learn borrows the sky: each chapter eases the day clock to its hour, so finishing the journey
-  // feels like one whole day passing — dawn through the aurora-lit two-tails finale. Play hands the
+  // feels like one whole day passing, sunrise through the aurora-lit two-tails finale. Play hands the
   // clock back to the free-running loop (exitLearn -> Scene.release).
-  const CHAPTER_SKY=[0.22, 0.40, 0.52, 0.71, 0.90, 0.95];   // sunrise -> morning -> noon -> golden -> night -> deep night
+  const CHAPTER_SKY=[0.24, 0.45, 0.70, 0.90, 0.95];   // 5 chapters: sunrise -> morning -> golden -> night -> deep night
   function gotoChapter(i){
-    learn.idx=Math.max(0,Math.min(CHAPTERS.length-1,i)); learn.phase='watch'; learn.doneNow=false;
+    learn.idx=Math.max(0,Math.min(CHAPTERS.length-1,i));
+    learn.beat=0; learn.entered.clear(); learn.doneNow=false; learn.idle=0; learn.pours=0; learn.nudge=0;
     Scene.easeTo(CHAPTER_SKY[learn.idx]!=null?CHAPTER_SKY[learn.idx]:0.5, 4.0);
-    stageClear(); stopModes();
-    const ch=CHAPTERS[learn.idx]; ch.setup(); if(ch.demo) ch.demo();
-    renderLearn(); document.getElementById('dock').scrollTop=0; saveProgress();
-  }
-  function startTinker(){
-    const ch=CHAPTERS[learn.idx]; learn.phase='tinker'; learn.doneNow=false;
-    if(ch.tinkerSetup) ch.tinkerSetup(); else if(ch.tinkerReset) buildBoards();
-    stageClear(); buildStage(ch); if(ch.begin) ch.begin();
-    renderLearn();
-    // put the instruction at the top of the shelf so lever + tools + Next sit in view below it
-    document.getElementById('learntext').scrollIntoView({block:'start', inline:'nearest'});
-    saveProgress();
+    stageClear(); stopModes(); clearAnnotations();
+    CHAPTERS[learn.idx].setup();
+    enterBeat(0);                                   // enterBeat renders + saves
+    document.getElementById('dock').scrollTop=0;
   }
   function advance(){ if(learn.idx>=CHAPTERS.length-1) exitLearn(); else gotoChapter(learn.idx+1); }
   function enterLearn(i){
@@ -1765,25 +1877,34 @@
     gotoChapter(i==null? learn.idx : i);
   }
   function exitLearn(){
-    stageClear(); learn.active=false; learn.phase='watch'; learn.doneNow=false;
+    stageClear(); clearAnnotations();
+    learn.active=false; learn.phase='watch'; learn.doneNow=false; learn.beat=0;
     fairRig(); buildBoards();   // Play is always the fresh sandbox: never leak a chapter's rig (compare/wild/bias) into it
     S.mode='play'; appEl.classList.remove('learn'); Scene.release();   // hand the sky back to the free-running day
-
     document.getElementById('modelearn').setAttribute('aria-pressed','false');
     document.getElementById('modeplay').setAttribute('aria-pressed','true');
-    setInsight('The whole machine is yours now. Drop, pour, make it rain. Open the <b>Lab</b> to bend the rules.','');
     saveProgress();
   }
+  // Gate open, real (honest ready predicate) or nudged (never trapped): mark done, the big button returns pulsing.
+  function openGate(){ learn.doneNow=true; learn.completed[learn.idx]=true; learn.nudge=0; renderLearn(); saveProgress(); }
   document.getElementById('modelearn').addEventListener('click',()=>{ if(!learn.active) enterLearn(); });
   document.getElementById('modeplay').addEventListener('click',()=>{ if(learn.active) exitLearn(); });
-  document.getElementById('lback').addEventListener('click',()=>{ if(learn.phase==='tinker') gotoChapter(learn.idx); else if(learn.idx>0) gotoChapter(learn.idx-1); });
-  document.getElementById('lskip').addEventListener('click',advance);
+  document.getElementById('learnquit').addEventListener('click',()=>{ if(learn.active) exitLearn(); });
+  document.getElementById('learnback').addEventListener('click',()=>{ if(learn.beat>0) enterBeat(learn.beat-1); else if(learn.idx>0) gotoChapter(learn.idx-1); });
   document.getElementById('lnext').addEventListener('click',()=>{
-    const ch=CHAPTERS[learn.idx];
-    if(learn.phase==='watch'){ if(ch.noTinker){ learn.completed[learn.idx]=true; exitLearn(); } else startTinker(); }
-    else { learn.completed[learn.idx]=true; advance(); } });
+    const ch=CHAPTERS[learn.idx], beats=ch.beats||[], beat=beats[learn.beat]||{};
+    if(learn.beat < beats.length-1){ enterBeat(learn.beat+1); return; }
+    if(beat.hands && !learn.doneNow) return;         // gate still closed (button is hidden anyway)
+    learn.completed[learn.idx]=true; saveProgress(); advance();
+  });
   document.getElementById('ldrop1').addEventListener('click',()=>{ ensureAudio(); dropOne(); });
   document.getElementById('ldrop100').addEventListener('click',()=>{ ensureAudio(); dropMany(100); });
+  // A stuck kid is never trapped: any input/tap resets the idle clock and soft-clears a nudge; a real
+  // pour counts toward the auto-open fallback. One delegated pair of listeners covers the whole bar.
+  (function(){ const row=document.getElementById('learnrow');
+    row.addEventListener('input',()=>{ learn.idle=0; if(learn.nudge){ learn.nudge=0; renderLearn(); } });
+    row.addEventListener('click',e=>{ learn.idle=0; if(learn.nudge){ learn.nudge=0; renderLearn(); }
+      if(e.target.closest('#ldrop1')||e.target.closest('#ldrop100')) learn.pours++; }); })();
 
   // Progress: remembered across visits. try/catch because storage can be full or blocked.
   const PKEY='plink.progress.v1';
@@ -1798,6 +1919,9 @@
       const mb=document.getElementById('musicbtn'); if(mb) mb.setAttribute('aria-pressed',S.music?'true':'false'); }
     if(p.scene){ S.weather=p.scene.weather!==false;   // default ON when absent
       const wb=document.getElementById('weatherbtn'); if(wb) wb.setAttribute('aria-pressed',S.weather?'true':'false'); }
+    // 6->5 chapter migration is automatic: the i<CHAPTERS.length guard drops a stale completed[5],
+    // and the clamp below maps a stored chapter 5 down to the new last chapter (4). Keep v:1 so
+    // returning kids keep their completion; resume always lands at the chapter's beat 0 (gotoChapter).
     if(Array.isArray(p.completed)) p.completed.forEach((v,i)=>{ if(v && i<CHAPTERS.length) learn.completed[i]=true; });
     learn.idx=Math.max(0,Math.min(CHAPTERS.length-1, p.chapter|0));
     if(p.lastMode==='learn') enterLearn(learn.idx);   // resume the story where they left off
