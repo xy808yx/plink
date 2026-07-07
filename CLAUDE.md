@@ -154,6 +154,54 @@ Mokes", not the town. Spec:
     ocean). `RIDGE` stays — it is the land-green tint mixed into `isleColor`. If depth ever feels thin,
     add FLAT atmospheric haze at the horizon, never island-shaped humps. `nui`/`iki` cached in `resize()`.
 
+## Weather, sand shoreline, day/night control, menu redesign (this pass)
+
+A follow-up on J's asks ("sand shoreline like Lanikai", day/night control, rare shooting stars + rain +
+lightning, kill the "Plink" intro wordmark, and "the non-minimized menu still looks like dogshit").
+
+- **Foreground sand shoreline.** The sea no longer runs to the bottom: `resize()` computes `shoreY`
+  (`round(H*0.845)`); the sea fills `horizonY..shoreY` (`drawSea` uses `seaBot=shoreY`, so `seaH=shoreY-
+  horizonY`) and the **beach** fills `shoreY..H`. `buildShore()` (called in `resize`) precomputes
+  `shoreBands[]` (4 sine-profile berms, back=wet near the water, front=dry at the bottom); `drawShore(P,
+  time)` paints them back-to-front with `sandColor(P,f)` (blends `SAND_DAY` warm gold -> `SAND_NIGHT` cool
+  moonlit by `P.starK`; each berm a shade lighter than the last), plus a wet-sand sheen, a breathing FOAM
+  waterline, lit berm crests, and a bottom vignette. GOTCHA fixed: a sine berm dipping below the waterline
+  left an uncovered dark seam, so `drawShore` FIRST lays a **flat wet-sand base** (`fillRect` shoreY..H)
+  that the sine berms draw on top of. The mirror reflection is unaffected (it still samples `scv` `0..
+  horizonY` with the DPR source-rect trick and is clipped to the sea rect).
+- **Weather (all rare, ambient, gated by `S.weather` + `reduce`; motion only).** In the Scene: **shooting
+  stars** (`meteors[]`/`spawnMeteor`/`updateMeteors`/`drawMeteors`, night-weighted by `starK`, a bright
+  additive streak + glow head), **rain** (`rainDrops[]` built in `resize`, `updateRain` eases `rainLevel`
+  toward `rainSpell`, `drawRain` thin slanted streaks, fewer under `S.lite`), and **lightning** (`flash`
+  + one `reflash`, `drawFlash` a soft full-height additive wash — cozy, not a strobe). `updateWeather(dt,P)`
+  is the scheduler (long dry spells, short showers; a rare flash while it rains fires distant thunder). It
+  runs from `draw()` on the same `fdt`. **`thunder(delay)`** (audio section, near `chord`) is fully
+  synthesized (`makeNoise` brown-noise buffer -> sweeping lowpass + sub-sine, slow swell + long tail, very
+  quiet, gated by `S.sfx && S.weather && AC`, silent before the veil tap — no asset). **Weather toggle**
+  `#weatherbtn` -> `S.weather`, persisted in progress `scene:{weather}` (default ON when absent).
+- **Day/night control (drawaurora-style).** Scene gained `pinned`; `setTime(t)` grabs+holds the clock
+  (`pinned=true`), `live()` hands it back (`pinned=false`, resumes if play+started), `isPinned()`. `frame()`
+  time order is now `pinned > reduce > ease > running`. UI: `#tod` range (a fixed night->day->night gradient
+  track) + `#todlive` "Live" toggle in Options ("Sky" section). Dragging pins (Live off); Live un-pins.
+  `syncSky()` (called from the main `frame`, throttled 1-in-14, only when `#tod` is on screen) makes the
+  thumb follow the live clock. `Scene.release()` (exitLearn) also clears `pinned`.
+- **Intro veil.** The big serif "Plink" wordmark is GONE; the veil is now a tasteful inline-SVG **bell
+  curve** (`.veil-bell`, gradient stroke that draws itself in) over "touch anywhere to start". The old
+  `.veil-title`/`--display` serif path was removed.
+- **Menu redesign.** Zen + Minimal left the Options panel; they now live in a **`.modesrow`** (Zen | Minimal,
+  2-col) pinned at the bottom of the dock/rail, hidden in Learn (`margin-top:auto` for the tall rail PLUS
+  `position:sticky;bottom:0` with an opaque frosted backing, so on a short landscape phone where the rail
+  scrolls they stay reachable at the visible bottom instead of dropping below the fold). `#minimalbtn`
+  is now just **"Minimal"**. Options gained `.opthead` section labels (Board / Sky), the Time meter, and a
+  Weather toggle; it is forced to a 2-col grid in portrait (`.dock .optsrow`) so Bell|Paths, Music|Weather
+  pair evenly. The stale `#zen{grid-column:1/-1}` rule was reduced to its border accent.
+- **Minimal is now IMMERSIVE.** `body.minimal` hides dock/topbar/insight and collapses `.app` to a single
+  full-bleed `"board"` area; `.cabinet` goes transparent/borderless so the near-full-screen Galton board
+  floats directly on the living scene (a zen way to just watch it), with only the slim `minibar` at the
+  bottom. Works in BOTH orientations (the `body.minimal .app` grid override out-specifies the portrait and
+  landscape `.app` grids). The minibar still borrows `optsrow`/`labrow` into pop-up sheets (which now carry
+  the new Time/Weather controls too).
+
 ## The four levers (all in Lab mode)
 
 1. **Bias** (`S.bias`): P(bounce right). Shifts the peak, stays a bell. The control case.

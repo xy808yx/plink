@@ -58,11 +58,14 @@
     text-align:center; cursor:pointer; background:radial-gradient(120% 90% at 50% 42%, rgba(10,18,32,.28), rgba(6,10,20,.62));
     transition:opacity .9s ease; }
   .veil.gone{ opacity:0; pointer-events:none; }
-  .veil-inner{ padding:0 24px; transform:translateY(-5vh); }
-  .veil-title{ font-family:var(--display); font-weight:650; font-size:clamp(66px,17vw,150px); font-style:normal;
-    line-height:.9; margin:0; letter-spacing:-.015em; color:var(--ink);
-    text-shadow:0 2px 44px rgba(127,232,169,.30), 0 1px 4px rgba(0,0,0,.45); }
-  .veil-cta{ margin:28px 0 0; font-size:14px; font-weight:600; letter-spacing:.05em; color:var(--ink-dim);
+  .veil-inner{ padding:0 24px; transform:translateY(-4vh); display:flex; flex-direction:column; align-items:center; }
+  /* the intro is now a single tasteful bell curve (the whole point of the toy), softly lit */
+  .veil-bell{ width:clamp(230px,56vw,440px); height:auto; display:block; overflow:visible;
+    filter:drop-shadow(0 6px 34px rgba(127,232,169,.28)); animation:bellrise 1.2s cubic-bezier(.2,.8,.2,1) both; }
+  .veil-bell-line{ stroke-dasharray:640; stroke-dashoffset:640; animation:belldraw 1.9s cubic-bezier(.32,.72,.24,1) .12s forwards; }
+  @keyframes bellrise{ from{ opacity:0; transform:translateY(10px) scale(.98);} to{ opacity:1; transform:none;} }
+  @keyframes belldraw{ to{ stroke-dashoffset:0; } }
+  .veil-cta{ margin:34px 0 0; font-size:14px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim);
     animation:breathe 3.2s ease-in-out infinite; }
   @keyframes breathe{ 0%,100%{ opacity:.42; } 50%{ opacity:1; } }
   /* SHELL: a CSS grid, not a flex column, so the board CLAIMS its space up front instead of
@@ -182,7 +185,28 @@
     border-radius:var(--r-ctl); min-height:44px; min-width:0; font-size:12.5px; font-weight:700; color:var(--ink-dim); white-space:nowrap; }
   .stat b{ font-family:var(--mono); font-weight:600; color:var(--honey); font-variant-numeric:tabular-nums; }
   .stat.hot{ border-color:color-mix(in srgb, var(--aurora) 50%, transparent); } .stat.hot b{ color:var(--aurora); }
-  .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; }
+  .stat.note{ border-color:transparent; background:transparent; color:var(--ink-faint); font-weight:600; white-space:normal; line-height:1.35; }   /* a sentence, not a readout: let it wrap so it never overflows the narrow rail */
+
+  /* quiet section label inside a panel (Board / Sky): the hierarchy the old flat pile of pills lacked */
+  .opthead{ grid-column:1 / -1; margin:2px 4px -3px; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase;
+    font-weight:800; color:var(--ink-faint); }
+
+  /* Time-of-day meter: the track is a fixed night -> day -> night ramp; a compact Live toggle rides in
+     the value slot and hands the clock back to the free-running day. */
+  .timerow input[type=range]#tod{ height:7px;
+    background:linear-gradient(90deg,#14213e 0%,#37477a 16%,#f4c479 33%,#c4e2f0 50%,#f2a642 67%,#463968 84%,#14213e 100%); box-shadow:inset 0 1px 3px rgba(0,0,0,.55); }
+  #tod::-webkit-slider-thumb{ background:#fff; border:2px solid #0c1a26; box-shadow:0 2px 7px rgba(0,0,0,.5); }
+  #tod::-moz-range-thumb{ background:#fff; border:2px solid #0c1a26; }
+  .livebtn{ min-height:32px; min-width:0; padding:6px 12px; font-size:12px; font-weight:800; letter-spacing:.04em;
+    border-radius:9px; white-space:nowrap; }
+  .livebtn[aria-pressed="true"]{ color:var(--aurora); }
+
+  /* Modes footer (Zen | Minimal): the immersive escapes, pinned at the bottom of the menu, calm and
+     outlined so they read as a quiet footer, not another action. */
+  .modesrow{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); flex:0 0 auto; }
+  .modesrow button{ background:transparent; border:1px solid var(--line); color:var(--ink-dim); font-weight:700; letter-spacing:.02em; }
+  .modesrow button:hover{ background:var(--surface); color:var(--ink); border-color:color-mix(in srgb, var(--aurora) 40%, transparent); }
+  .app.learn .modesrow{ display:none; }              /* the story owns the shelf; hide the mode escapes */
 
   /* PHONE cosmetics only — the symmetric portrait GRID lives in @media(orientation:portrait) below. */
   @media (max-width:560px){
@@ -197,13 +221,13 @@
      are even BY CONSTRUCTION — no flex-wrap raggedness, no lonely trailing button. */
   @media (orientation:portrait){
     .dock .controls{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-2); align-content:start; }
+    .dock .optsrow{ grid-template-columns:repeat(2,1fr); }   /* the Options panel pairs evenly: Bell|Paths, Music|Weather */
     .dock .group{ display:contents; }             /* flatten groups INTO the grid (the valid use of display:contents) */
     .dock .spacer{ display:none; }
     .dock #drop1{ grid-column:1 / -1; }           /* primary hero spans the row */
     .dock .controls .seg{ grid-column:2 / -1; }    /* Reset takes col 1; Options|Lab fill cols 2-3 — full row */
     .dock .slider{ grid-column:1 / -1; }          /* sliders are full-width meter rows */
     .dock .stat{ grid-column:1 / -1; }            /* readouts are full-width rows */
-    .dock #musicbtn{ grid-column:1 / -1; }        /* Bell/Paths/Aurora fill row 1; Music drops to its own row so it never orphans */
     #dockcount{ display:none; }
   }
 
@@ -235,7 +259,15 @@
     .railhead-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:3px; }
     .railtitle{ font-size:28px; }
     #dockcount{ display:block; text-align:right; min-width:0; }
-    .railfoot{ display:block; margin-top:auto; padding-top:var(--sp-3); border-top:1px solid var(--line);
+    /* Pin the mode footer to the bottom of the rail. margin-top:auto handles the tall rail; position:sticky
+       keeps Zen | Minimal reachable at the visible bottom even when a short landscape phone makes the rail
+       scroll (where an auto margin would collapse to 0 and drop them below the fold). Frosted backing so the
+       scrolling controls read cleanly behind it. */
+    .dock .modesrow{ margin-top:auto; position:sticky; bottom:0; z-index:2;
+      padding:var(--sp-3) 0 var(--sp-2); border-top:1px solid var(--line);
+      background:rgba(11,19,33,0.97);   /* opaque enough to cleanly cover the controls scrolling behind it */
+      backdrop-filter:blur(14px) saturate(1.05); -webkit-backdrop-filter:blur(14px) saturate(1.05); }
+    .railfoot{ display:block; margin-top:var(--sp-2); padding-top:var(--sp-3); border-top:1px solid var(--line);
       font-size:11.5px; letter-spacing:.05em; font-weight:600; color:var(--ink-faint); text-align:center; }
   }
   /* LEARN (Push 2): the story panel. Play stays the untouched sandbox; Learn swaps the control
@@ -278,7 +310,7 @@
   .app{ transition:opacity .8s ease; }
   body.zen .app{ opacity:0; pointer-events:none; }
   body.zen .topbar, body.zen .cabinet, body.zen .insight, body.zen .dock{ pointer-events:none; }
-  #zen{ grid-column:1 / -1; border-color:color-mix(in srgb, var(--aurora) 34%, transparent); }
+  #zen{ border-color:color-mix(in srgb, var(--aurora) 34%, transparent); }   /* Zen now pairs with Minimal in the modes footer (no longer full-width in Options) */
   .zenbar{ position:fixed; z-index:40; left:50%; bottom:max(22px,env(safe-area-inset-bottom)); transform:translateX(-50%);
     display:none; align-items:center; gap:8px; padding:7px 8px 7px 16px;
     background:var(--glass); backdrop-filter:blur(16px) saturate(1.05); -webkit-backdrop-filter:blur(16px) saturate(1.05);
@@ -288,12 +320,17 @@
   .zenbar .zlabel{ font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; padding-right:2px; }
   .zenbar button{ min-height:40px; padding:9px 16px; }
 
-  /* MINIMAL mode: the big dock is replaced by one slim always-there icon bar pinned to the bottom.
-     The bar never fully leaves (it just dims when idle, drawaurora-style); the large Options / Lab
-     panels pop up above it as sheets that slide away when dismissed. */
-  body.minimal .dock{ display:none; }
-  body.minimal .app{ padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px)); }   /* clear the fixed bar so the insight never sits under it */
-  body.minimal .topbar .plaque, body.minimal .topbar .legend{ display:none; }   /* trim the header to its essentials */
+  /* MINIMAL mode: an immersive, near full-screen Galton board floating on the living scene. All the
+     chrome clears away; the board grows to claim the whole viewport (a zen way to just watch it), and
+     one slim always-there icon bar rides the bottom (it dims when idle). The big Options / Lab panels
+     pop up above the bar as sheets. Works in both orientations; the board is transparent, so pegs and
+     marbles sit directly on the sky, sea and sand. */
+  body.minimal .dock, body.minimal .topbar, body.minimal .insight{ display:none; }
+  body.minimal .app{
+    padding:max(6px,env(safe-area-inset-top)) 6px calc(62px + env(safe-area-inset-bottom, 0px)) 6px;
+    grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); grid-template-areas:"board"; }
+  body.minimal .cabinet{ background:none; border:none; box-shadow:none;
+    backdrop-filter:none; -webkit-backdrop-filter:none; border-radius:0; animation:none; opacity:1; transform:none; }
   .minibar{ position:fixed; z-index:45; left:50%; bottom:max(10px,env(safe-area-inset-bottom)); transform:translateX(-50%);
     display:none; align-items:center; gap:3px; padding:6px;
     background:var(--glass); backdrop-filter:blur(16px) saturate(1.08); -webkit-backdrop-filter:blur(16px) saturate(1.08);
@@ -322,7 +359,6 @@
   .minisheet .slider{ grid-column:1 / -1; }
   .minisheet .spacer{ display:none; }
   .minisheet .stat.note{ grid-column:1 / -1; }
-  body.minimal #minimalbtn, body.minimal #zen{ display:none; }   /* the bar already has these; hide the dupes in the sheet */
   @media (max-width:430px){                              /* phones: tighten so all the icons fit one row */
     .minibar{ gap:1px; padding:4px; max-width:99vw; }
     .minibar .mi{ min-width:38px; min-height:42px; border-radius:11px; }
@@ -333,6 +369,7 @@
   @media (prefers-reduced-motion: reduce){
     .cabinet{ animation:none; opacity:1; transform:none; }
     button.pulse,.live,.veil-cta{ animation:none; }
+    .veil-bell{ animation:none; filter:none; } .veil-bell-line{ animation:none; stroke-dashoffset:0; }
     .veil-cta{ opacity:.85; }
     .spotlight{ animation:none; box-shadow:0 0 0 2px color-mix(in srgb, var(--aurora) 40%, transparent); }
     *{ transition:none !important; }
@@ -343,8 +380,23 @@
 <canvas id="scene"></canvas>
 <div class="veil" id="veil">
   <div class="veil-inner">
-    <h1 class="veil-title">Plink</h1>
-    <p class="veil-cta" id="veilcta">tap anywhere to begin</p>
+    <svg class="veil-bell" viewBox="0 0 300 150" role="img" aria-label="A bell curve" focusable="false">
+      <defs>
+        <linearGradient id="bellFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFD9A3" stop-opacity="0.34"/>
+          <stop offset="1" stop-color="#FFD9A3" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="bellLine" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#7FE8A9"/>
+          <stop offset="0.5" stop-color="#FFD9A3"/>
+          <stop offset="1" stop-color="#7FE8A9"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 132 C70 132 96 130 116 110 C134 92 140 42 150 42 C160 42 166 92 184 110 C204 130 230 132 284 132 L284 132 L16 132 Z" fill="url(#bellFill)"/>
+      <path class="veil-bell-line" d="M16 132 C70 132 96 130 116 110 C134 92 140 42 150 42 C160 42 166 92 184 110 C204 130 230 132 284 132" fill="none" stroke="url(#bellLine)" stroke-width="2.6" stroke-linecap="round"/>
+      <line x1="16" y1="132" x2="284" y2="132" stroke="rgba(244,248,255,0.28)" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <p class="veil-cta" id="veilcta">touch anywhere to start</p>
   </div>
 </div>
 <div class="app">
@@ -396,18 +448,22 @@
     </div>
   </div>
 
-  <!-- Options layer: revealed by the Options button. Rows / speed / view toggles. -->
+  <!-- Options layer: revealed by the Options button. Board setup, the day/night sky, and view toggles. -->
   <div class="controls optsrow" id="optsrow">
+    <p class="opthead">Board</p>
     <div class="group">
       <div class="slider"><label for="rows">Rows</label><input type="range" id="rows" min="6" max="15" step="1" value="15"><output id="rowsOut">15</output></div>
       <div class="slider"><label for="speed">Speed</label><input type="range" id="speed" min="1" max="5" step="1" value="1"><output id="speedOut">1</output></div>
+    </div>
+    <p class="opthead">Sky</p>
+    <div class="group">
+      <div class="slider timerow"><label for="tod">Time</label><input type="range" id="tod" min="0" max="100" step="1" value="50" aria-label="Time of day, night to day to night"><button id="todlive" class="livebtn" aria-pressed="true" title="Let the day run on its own">Live</button></div>
     </div>
     <div class="group">
       <button id="bell" aria-pressed="true">Bell curve</button>
       <button id="paths" aria-pressed="false">Show paths</button>
       <button id="musicbtn" aria-pressed="true">Music</button>
-      <button id="zen">Zen</button>
-      <button id="minimalbtn">Minimal menu</button>
+      <button id="weatherbtn" aria-pressed="true">Weather</button>
     </div>
   </div>
 
@@ -449,6 +505,13 @@
       <button id="lnext" class="primary">Let me try</button>
     </div>
   </div>
+
+  <!-- Immersive modes, pinned at the bottom of the menu in both orientations (Play only). Minimal
+       clears the chrome down to a slim bar; Zen dissolves everything but the living sky. -->
+  <div class="modesrow" id="modesrow">
+    <button id="zen">Zen</button>
+    <button id="minimalbtn">Minimal</button>
+  </div>
   <p class="railfoot">Galton&rsquo;s quincunx &middot; 1877</p>
   </div>
 </div>
@@ -489,6 +552,7 @@
 
   // === CONFIG ===  shared view state + the "rig" (bias/momentum/wild) the levers set.
   const S={ rows:15, speed:1, showBell:true, showPaths:false, music:true, sfx:true, rainOn:false,
+            weather:true /* ambient sky weather: shooting stars, rain, lightning (all rare) */,
             guessMode:false, depth:'explore', logScale:false, compare:false,
             bias:0.5, momentum:0, wild:0,
             mode:'play' /* 'play' = the untouched sandbox; 'learn' = the story journey */,
@@ -873,6 +937,29 @@
     g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.060,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.5); o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t+.55); });
     const s=AC.createOscillator(), sg=AC.createGain(); s.type='sine'; s.frequency.value=2093;   // bell sparkle on top for the rare-event chime
     sg.gain.setValueAtTime(.0001,now); sg.gain.exponentialRampToValueAtTime(.026,now+.015); sg.gain.exponentialRampToValueAtTime(.0001,now+.4); s.connect(sg); sg.connect(sfxBus); s.start(now); s.stop(now+.45); }
+  // ---- cozy ambient thunder (fully synthesized, no asset) ----
+  // A soft, DISTANT rumble for the rare lightning flash: brownish noise through a lowpass that
+  // sweeps down, plus a low sub-sine, with a slow swell and a long tail. Quiet by design so it
+  // stays a warm background presence, never a jump-scare. Gated by S.sfx + S.weather; silent until
+  // the audio context exists (after the veil tap). Built once, reused.
+  let noiseBuf=null;
+  function makeNoise(){ if(noiseBuf||!AC) return noiseBuf; const len=Math.floor(AC.sampleRate*2), b=AC.createBuffer(1,len,AC.sampleRate), d=b.getChannelData(0);
+    let last=0; for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.4; }   // integrate white -> brown (low, rumbly)
+    noiseBuf=b; return b; }
+  function thunder(delay){ if(!S.sfx||!S.weather||!AC) return; if(!makeNoise()) return; const t0=AC.currentTime+Math.max(0,delay||0);
+    const peak=0.045*(0.7+Math.random()*0.5);
+    const src=AC.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
+    const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=0.7;
+    lp.frequency.setValueAtTime(520,t0); lp.frequency.exponentialRampToValueAtTime(80,t0+2.6);
+    const g=AC.createGain(); g.gain.setValueAtTime(.0001,t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0+0.28+Math.random()*0.3);
+    g.gain.exponentialRampToValueAtTime(peak*0.5, t0+1.0);           // a soft second swell for the roll
+    g.gain.exponentialRampToValueAtTime(peak*0.72, t0+1.4);
+    g.gain.exponentialRampToValueAtTime(.0001, t0+3.0+Math.random()*0.8);
+    const sub=AC.createOscillator(); sub.type='sine'; sub.frequency.setValueAtTime(56,t0); sub.frequency.exponentialRampToValueAtTime(36,t0+2.2);
+    const sg=AC.createGain(); sg.gain.setValueAtTime(.0001,t0); sg.gain.exponentialRampToValueAtTime(peak*0.9,t0+0.32); sg.gain.exponentialRampToValueAtTime(.0001,t0+2.6);
+    src.connect(lp); lp.connect(g); g.connect(sfxBus); sub.connect(sg); sg.connect(sfxBus);
+    src.start(t0); src.stop(t0+3.9); sub.start(t0); sub.stop(t0+2.9); }
 
   /* ---------------- spawn pump ---------------- */
   function pump(board,dt){
@@ -902,7 +989,7 @@
      its own IIFE so its private helpers never collide with the board's draw functions. */
   const Scene=(function(){
     const scv=document.getElementById('scene'), sctx=scv.getContext('2d',{alpha:false});
-    let W=0,H=0,horizonY=0;
+    let W=0,H=0,horizonY=0,shoreY=0;   // shoreY = where the sea meets the foreground sand (below it: the beach)
     // ---- phase keyframe color table (t anchored; interpolate the nearest two) ----
     const KEYS=[
       { t:0.00, name:"Night",   zenith:[8,14,28],  mid:[10,20,40],  horizon:[16,34,58],  seaTop:[16,51,63],  seaDeep:[7,20,30],  light:[150,180,220], starK:1.00, cloud:[40,54,78],  cloudA:0.10 },
@@ -970,6 +1057,7 @@
     function resize(){ W=Math.max(1,window.innerWidth||1); H=Math.max(1,window.innerHeight||1);  // clamp so a 0-size viewport never builds a 0-dim sprite (drawImage throws on those)
       scv.width=Math.round(W*DPR); scv.height=Math.round(H*DPR); scv.style.width=W+'px'; scv.style.height=H+'px'; sctx.setTransform(DPR,0,0,DPR,0,0);
       horizonY=Math.max(1,Math.round(H*0.60));
+      shoreY=Math.max(horizonY+8,Math.round(H*0.845));   // the sea runs horizonY..shoreY; the foreground sand runs shoreY..H
       starSprite=makeStarSprite(Math.min(W,1600),Math.round(horizonY));
       glintSprite=glintSprite||makeGlintSprite();
       cloudSprite=cloudSprite||makeCloudSprite(); glowSprite=makeRadial(256,'rgba(255,255,255,1)','rgba(255,255,255,0)');
@@ -979,6 +1067,7 @@
       // land geometry, computed once: the two hero islands (the Mokes) alone on an open horizon
       const NUIx=W*0.44, NUIw=Math.min(W*0.20,280), NUIh=horizonY*0.205, IKIx=W*0.61, IKIw=Math.min(W*0.115,150), IKIh=horizonY*0.135;
       nui=islePoints(NUIx,NUIw,NUIh,horizonY,-0.7); iki=islePoints(IKIx,IKIw,IKIh,horizonY,0.55);
+      buildShore(); buildRain();
       buildTwinkles(); if(!birds.length) buildBirds(); if(!clouds.length) buildClouds(); }
     // ---- sky band draw helpers (order matters: the sea samples this band) ----
     function drawSky(P){ const g=sctx.createLinearGradient(0,0,0,horizonY); g.addColorStop(0,rgb(P.zenith)); g.addColorStop(0.55,rgb(P.mid)); g.addColorStop(1,rgb(P.horizon)); sctx.fillStyle=g; sctx.fillRect(0,0,W,horizonY); }
@@ -1065,8 +1154,8 @@
             gw=(10+dep*46)*(0.7+0.3*(reduce?0.5:Math.sin(time*2+i))), gh=gw*(0.16+0.05*dep);
           sctx.globalAlpha=(0.5*(1-dep*0.6))*(0.6+0.4*Math.abs(ph||0.5)); sctx.drawImage(glintSprite,rx-gw/2,y-gh/2,gw,gh); } sctx.globalAlpha=1; }
       sctx.restore(); sctx.globalCompositeOperation='source-over'; }
-    function drawSea(P,body,time){ const seaH=H-horizonY;
-      const g=sctx.createLinearGradient(0,horizonY,0,H); g.addColorStop(0,rgb(P.seaTop)); g.addColorStop(0.5,rgb(lerpRGB(P.seaTop,P.seaDeep,0.5))); g.addColorStop(1,rgb(P.seaDeep)); sctx.fillStyle=g; sctx.fillRect(0,horizonY,W,seaH);
+    function drawSea(P,body,time){ const seaBot=shoreY, seaH=seaBot-horizonY;   // the sea now stops at the shoreline; the sand is drawn on top of the bottom band
+      const g=sctx.createLinearGradient(0,horizonY,0,seaBot); g.addColorStop(0,rgb(P.seaTop)); g.addColorStop(0.5,rgb(lerpRGB(P.seaTop,P.seaDeep,0.5))); g.addColorStop(1,rgb(P.seaDeep)); sctx.fillStyle=g; sctx.fillRect(0,horizonY,W,seaH);
       if(!S.lite){                                                               // capture the sky+land band, blur it cheap, blit it ONCE flipped (no band loop = no stripes)
         mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,W,horizonY);
         mctx.drawImage(scv,0,0,Math.round(W*DPR),Math.round(horizonY*DPR),0,0,W,horizonY);   // SOURCE rect is DEVICE px (scv is DPR-sized); DEST is CSS px on the un-scaled offscreen
@@ -1079,7 +1168,7 @@
       const hz=sctx.createLinearGradient(0,horizonY,0,horizonY+seaH*0.32); hz.addColorStop(0,rgb(P.horizon,0.5)); hz.addColorStop(1,rgb(P.horizon,0)); sctx.fillStyle=hz; sctx.fillRect(0,horizonY,W,seaH*0.32);   // horizon haze wash sinks contrast + hides the seam
       if(body) drawGlitter(P,body,time,seaH);
       drawRipples(seaH,time);
-      const vg=sctx.createLinearGradient(0,H-seaH*0.5,0,H); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,rgb(P.seaDeep,0.45)); sctx.fillStyle=vg; sctx.fillRect(0,H-seaH*0.5,W,seaH*0.5); }
+      const vg=sctx.createLinearGradient(0,seaBot-seaH*0.42,0,seaBot); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,rgb(P.seaDeep,0.5)); sctx.fillStyle=vg; sctx.fillRect(0,seaBot-seaH*0.42,W,seaH*0.42); }   // deepen the water right at the waterline
     function drawHorizonGlow(P){ const g=sctx.createLinearGradient(0,horizonY-6,0,horizonY+8); g.addColorStop(0,rgb(P.light,0)); g.addColorStop(0.5,rgb(P.light,0.35*clamp(1-P.starK*0.6,0.2,1))); g.addColorStop(1,rgb(P.light,0)); sctx.globalCompositeOperation='lighter'; sctx.fillStyle=g; sctx.fillRect(0,horizonY-6,W,14); sctx.globalCompositeOperation='source-over'; }
     // ---- ripples: a quiet one-shot shimmer where a finger touches the scene (sea or sky) ----
     let ripples=[];
@@ -1126,16 +1215,98 @@
         if(s.flash){ const rr=(1-k)*54+10; sctx.globalAlpha=k*0.6; sctx.drawImage(glowSprite,s.x-rr,s.y-rr,rr*2,rr*2); continue; }
         const tw=0.75+0.25*Math.sin(time*11+s.x*0.3), sz=(2.4+4.2*k); sctx.globalAlpha=k*tw; const g2=fwSprite(s.col); sctx.drawImage(g2,s.x-sz,s.y-sz,sz*2,sz*2); }
       sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over'; sctx.restore(); }
+
+    // ==================== foreground sand shoreline (drawaurora-style receding layers, as beach) ====
+    // A few overlapping sand berms from the waterline down to the bottom edge: the band nearest the
+    // water is wet + darker, the front band is dry + lighter. Warm gold by day, cool + moonlit at
+    // night (colour blends by the sky's night factor). Profiles are precomputed once per resize.
+    const SAND_DAY=[214,187,141], SAND_NIGHT=[48,56,82], FOAM=[236,244,250];
+    let shoreBands=[];
+    function buildShore(){ shoreBands=[]; const span=Math.max(1,H-shoreY), N=4, steps=Math.max(12,Math.round(W/48));
+      for(let b=0;b<N;b++){ const f=b/(N-1);                             // 0 = back (at the waterline), 1 = front (bottom)
+        const baseY=shoreY+span*(0.015+f*0.66), amp=span*(0.055-f*0.028), ph=b*1.7, wob=1+b*0.5;
+        const pts=[]; for(let i=0;i<=steps;i++){ const x=i/steps*W;
+          const y=baseY - amp*Math.sin(x/W*Math.PI*wob*1.3+ph) - amp*0.4*Math.sin(x/W*Math.PI*6+ph*2); pts.push([x,y]); }
+        shoreBands.push({pts, k:f}); } }
+    function sandColor(P,f){ const nf=clamp(P.starK,0,1), base=lerpRGB(SAND_DAY,SAND_NIGHT,nf), lift=0.80+f*0.36;   // back band wet(dark), front dry(light)
+      return [clamp(base[0]*lift,0,255), clamp(base[1]*lift,0,255), clamp(base[2]*lift,0,255)]; }
+    function drawShore(P,time){ if(shoreY>=H||!shoreBands.length) return;
+      const back=shoreBands[0], span=H-shoreY;
+      // flat wet-sand base: the seam between sea and sand is ALWAYS covered, so a sine berm dipping
+      // below the waterline can never leave a gap (the dark seam bug). Its top IS the waterline.
+      sctx.fillStyle=rgb(sandColor(P,0)); sctx.fillRect(0,shoreY-1,W,span+2);
+      // wet-sand sheen: the shore near the water catches a little sky-light (brighter by day)
+      { sctx.save(); sctx.globalCompositeOperation='lighter'; const sh=sctx.createLinearGradient(0,shoreY,0,shoreY+span*0.5);
+        sh.addColorStop(0,rgb(P.light,0.14*clamp(1-P.starK*0.55,0.28,1))); sh.addColorStop(1,rgb(P.light,0));
+        sctx.fillStyle=sh; sctx.fillRect(0,shoreY,W,span*0.5); sctx.restore(); }
+      // the drier receding berms, back to front (each a shade lighter than the last)
+      for(let b=1;b<shoreBands.length;b++){ const band=shoreBands[b], col=sandColor(P,band.k);
+        sctx.fillStyle=rgb(col); sctx.beginPath(); sctx.moveTo(0,H);
+        for(const p of band.pts) sctx.lineTo(p[0],p[1]); sctx.lineTo(W,H); sctx.closePath(); sctx.fill();
+        sctx.save(); sctx.globalCompositeOperation='lighter'; sctx.strokeStyle=rgb(P.light,0.09+band.k*0.06); sctx.lineWidth=1.4; sctx.lineJoin='round';
+        sctx.beginPath(); band.pts.forEach((p,i)=> i?sctx.lineTo(p[0],p[1]):sctx.moveTo(p[0],p[1])); sctx.stroke(); sctx.restore(); }
+      // a soft breathing foam line where the water laps the shore
+      { const fa=(0.22+0.12*(reduce?0.5:0.5+0.5*Math.sin(time*0.9)))*clamp(1-P.starK*0.4,0.5,1);
+        sctx.save(); sctx.globalCompositeOperation='lighter'; sctx.strokeStyle=rgb(FOAM,fa); sctx.lineWidth=2.4; sctx.lineJoin='round';
+        sctx.beginPath(); back.pts.forEach((p,i)=> i?sctx.lineTo(p[0],p[1]-2):sctx.moveTo(p[0],p[1]-2)); sctx.stroke(); sctx.restore(); }
+      // ground the very bottom so the foreground sits heavier
+      const fg=shoreBands[shoreBands.length-1], vy=fg.pts[0][1];
+      const vg=sctx.createLinearGradient(0,vy,0,H); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,'+(0.14+P.starK*0.16)+')'); sctx.fillStyle=vg; sctx.fillRect(0,vy,W,H-vy); }
+
+    // ==================== weather (all rare): shooting stars, rain, lightning + distant thunder ====
+    // A quiet scheduler: mostly clear, with the odd shower rolling through, the odd soft lightning
+    // flash, and the odd shooting star at night. Gated by S.weather; all motion gated by reduce.
+    let meteors=[], meteorTimer=8;
+    function spawnMeteor(){ const dir=Math.random()<0.5?1:-1, x=dir>0? Math.random()*W*0.55 : W*0.45+Math.random()*W*0.55,
+      y=Math.random()*horizonY*0.4, sp=W*0.5+Math.random()*W*0.4, slope=0.14+Math.random()*0.24;
+      meteors.push({ x, y, vx:dir*sp, vy:sp*slope, life:1, max:0.65+Math.random()*0.5, len:56+Math.random()*90 }); }
+    function updateMeteors(dt,P){ if(reduce) return;
+      if(S.weather && P.starK>0.35){ meteorTimer-=dt*P.starK; if(meteorTimer<=0){ spawnMeteor(); meteorTimer=10+Math.random()*18; } }
+      if(!meteors.length) return;
+      for(const m of meteors){ m.x+=m.vx*dt; m.y+=m.vy*dt; m.life-=dt/m.max; }
+      meteors=meteors.filter(m=>m.life>0 && m.y<horizonY+20); }
+    function drawMeteors(P){ if(!meteors.length||P.starK<=0.05) return; sctx.save(); sctx.globalCompositeOperation='lighter'; sctx.lineCap='round';
+      for(const m of meteors){ const k=clamp(m.life,0,1)*P.starK, d=Math.hypot(m.vx,m.vy)||1, ux=m.vx/d, uy=m.vy/d, L=m.len*Math.min(1,m.life*1.5);
+        const g=sctx.createLinearGradient(m.x,m.y,m.x-ux*L,m.y-uy*L); g.addColorStop(0,'rgba(255,255,255,'+(0.9*k)+')'); g.addColorStop(0.4,'rgba(198,224,255,'+(0.32*k)+')'); g.addColorStop(1,'rgba(198,224,255,0)');
+        sctx.strokeStyle=g; sctx.lineWidth=2; sctx.beginPath(); sctx.moveTo(m.x,m.y); sctx.lineTo(m.x-ux*L,m.y-uy*L); sctx.stroke();
+        sctx.globalAlpha=k; sctx.drawImage(glowSprite,m.x-7,m.y-7,14,14); sctx.globalAlpha=1; }
+      sctx.restore(); }
+    let rainDrops=[], rainSpell=false, rainLevel=0, weatherTimer=45, lightTimer=0, flash=0, reflash=false;
+    function buildRain(){ rainDrops=[]; const N=Math.round(clamp(W*0.16,60,180)); for(let i=0;i<N;i++) rainDrops.push({ x:Math.random()*W*1.2-W*0.1, y:Math.random()*H, len:8+Math.random()*14, sp:0.85+Math.random()*0.75 }); }
+    function updateRain(dt){ if(reduce){ rainLevel=0; return; }
+      rainLevel += ((rainSpell?1:0)-rainLevel)*Math.min(1,dt*0.5);       // ease the shower in and out
+      if(rainLevel<0.01) return; const vy=H*1.15, vx=-W*0.10;
+      for(const d of rainDrops){ d.y+=vy*d.sp*dt; d.x+=vx*d.sp*dt; if(d.y>H+10){ d.y=-10-Math.random()*40; d.x=Math.random()*W*1.2-W*0.1; } if(d.x<-W*0.12) d.x+=W*1.3; } }
+    function drawRain(){ if(rainLevel<0.01) return; const a=rainLevel*0.45; sctx.save(); sctx.strokeStyle='rgba(202,220,246,'+a+')'; sctx.lineWidth=1.1; sctx.lineCap='round';
+      const vy=H*1.15, vx=-W*0.10, d0=Math.hypot(vx,vy)||1, ux=vx/d0, uy=vy/d0, step=S.lite?2:1;
+      for(let i=0;i<rainDrops.length;i+=step){ const d=rainDrops[i], L=d.len*(0.6+rainLevel*0.6); sctx.beginPath(); sctx.moveTo(d.x,d.y); sctx.lineTo(d.x-ux*L,d.y-uy*L); sctx.stroke(); }
+      sctx.restore(); }
+    function drawFlash(){ if(flash<=0.01) return; sctx.save(); sctx.globalCompositeOperation='lighter';
+      const g=sctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(200,214,246,'+(flash*0.30)+')'); g.addColorStop(0.6,'rgba(190,206,240,'+(flash*0.16)+')'); g.addColorStop(1,'rgba(190,206,240,0)');
+      sctx.fillStyle=g; sctx.fillRect(0,0,W,H); sctx.restore(); }
+    function updateWeather(dt,P){
+      if(!S.weather){ rainSpell=false; }
+      else if(!reduce){
+        weatherTimer-=dt;
+        if(weatherTimer<=0){ rainSpell=!rainSpell; weatherTimer = rainSpell? (24+Math.random()*30) : (75+Math.random()*95); if(rainSpell) lightTimer=5+Math.random()*9; }   // short showers, long dry spells
+        if(rainSpell && rainLevel>0.4){ lightTimer-=dt; if(lightTimer<=0){ flash=1; reflash=true; lightTimer=8+Math.random()*18; thunder(0.5+Math.random()*1.6); } }   // rare flash + distant thunder
+      }
+      if(flash>0){ flash-=dt*2.4; if(reflash && flash<0.45){ flash=0.8; reflash=false; } if(flash<0) flash=0; }   // one soft re-flicker
+      updateRain(dt); updateMeteors(dt,P); }
+
     // ---- the clock: the app owns wall time; Learn borrows the sky per chapter ----
     let sceneT=0.90;                 // veil opens on the deep-night sky (aurora hour)
-    let running=false, started=false, ease=null, lastPaint=0;
+    let running=false, started=false, ease=null, lastPaint=0, pinned=false;   // pinned = the day/night slider is holding a fixed time
     const DAY_LEN=360;               // seconds for one full accelerated day (fallback pacing)
-    function setTime(t){ sceneT=((t%1)+1)%1; ease=null; }
+    function setTime(t){ sceneT=((t%1)+1)%1; ease=null; pinned=true; }    // the day/night control grabs the clock and holds it
+    function live(){ pinned=false; ease=null; if(S.mode==='play'&&started) running=true; }   // hand the clock back to the living day
+    function isPinned(){ return pinned; }
     function begin(){ started=true; running=(S.mode==='play'); }         // veil tap: Play drifts; Learn waits for its chapter ease
-    function easeTo(target,dur){ let from=sceneT, to=((target%1)+1)%1, d=to-from; if(d>0.5)d-=1; if(d<-0.5)d+=1; ease={from,delta:d,elapsed:0,dur:Math.max(0.1,dur||3.0)}; running=false; }
-    function release(){ ease=null; running=true; }                        // Play resumes the free-running loop
+    function easeTo(target,dur){ let from=sceneT, to=((target%1)+1)%1, d=to-from; if(d>0.5)d-=1; if(d<-0.5)d+=1; ease={from,delta:d,elapsed:0,dur:Math.max(0.1,dur||3.0)}; running=false; pinned=false; }   // Learn borrowing the sky un-pins a time the user held in Play (else the ease is a no-op)
+    function release(){ ease=null; pinned=false; running=true; }          // Play resumes the free-running loop (also un-pins)
     function frame(nowMs,dt){
-      if(reduce){ sceneT=0.76; }                                          // reduced motion: a still golden hour
+      if(pinned){ /* held at the user's chosen time */ }
+      else if(reduce){ sceneT=0.76; }                                     // reduced motion: a still golden hour
       else if(ease){ ease.elapsed+=dt; const u=Math.min(1,ease.elapsed/ease.dur); sceneT=((ease.from+ease.delta*smooth(u))%1+1)%1; if(u>=1) ease=null; }
       else if(running && started && !document.hidden){ sceneT=(sceneT+dt/DAY_LEN)%1; }
       for(const rp of ripples) rp.life-=dt*0.6; if(ripples.length) ripples=ripples.filter(r=>r.life>0);
@@ -1144,11 +1315,11 @@
       draw(nowMs/1000);
     }
     function draw(time){ if(!W) return; const P=paletteAt(sceneT), C=celestial(sceneT);
-      const fdt=lastDrawT? Math.min(0.05,time-lastDrawT):0; lastDrawT=time; updateFireworks(fdt); updateAurora(fdt);
-      drawSky(P); drawStars(P,time); drawAuroraStrokes(time); drawClouds(P,time); drawBirds(P,time); const body=drawCelestial(P,C); drawLand(P); drawHorizonGlow(P);
+      const fdt=lastDrawT? Math.min(0.05,time-lastDrawT):0; lastDrawT=time; updateFireworks(fdt); updateAurora(fdt); updateWeather(fdt,P);
+      drawSky(P); drawStars(P,time); drawMeteors(P); drawAuroraStrokes(time); drawClouds(P,time); drawBirds(P,time); const body=drawCelestial(P,C); drawLand(P); drawHorizonGlow(P);
       drawFireworks(time);         // before drawSea so the mirror-calm water reflects every bloom
-      drawSea(P,body,time); }
-    return { resize, frame, begin, easeTo, release, setTime, addRipple, popFirework, auroraDown, auroraMove, auroraUp, clearZenArt, horizon:()=>horizonY, _t:()=>sceneT };
+      drawSea(P,body,time); drawShore(P,time); drawRain(); drawFlash(); }
+    return { resize, frame, begin, easeTo, release, setTime, live, isPinned, addRipple, popFirework, auroraDown, auroraMove, auroraUp, clearZenArt, horizon:()=>horizonY, _t:()=>sceneT };
   })();
 
   /* ---------------- peg sprite (luminous points, cached per radius) ---------------- */
@@ -1309,7 +1480,16 @@
     // adaptive quality: if frames run long, shed the juice (trails, bounce) until it recovers
     if(ms<250){ ftAvg=ftAvg*0.9+ms*0.1; if(ftAvg>22) S.lite=true; else if(ftAvg<17) S.lite=false; }
     Scene.frame(now,dt);         // paint the world (own canvas, self-capped ~30fps)
-    tick(dt); requestAnimationFrame(frame);
+    tick(dt); syncSky(); requestAnimationFrame(frame);
+  }
+  // While the Options panel is open and the sky is running live, let the Time slider follow the clock
+  // (so it reads like drawaurora's). Throttled; only touches the DOM a few times a second.
+  let skyPoll=0;
+  function syncSky(){ if(++skyPoll<14) return; skyPoll=0;
+    const tod=document.getElementById('tod'); if(!tod || tod.offsetParent===null) return;   // only when the Time meter is actually on screen (dock panel OR minimal sheet)
+    const pinned=Scene.isPinned(), live=document.getElementById('todlive');
+    if(live) live.setAttribute('aria-pressed', pinned?'false':'true');
+    if(!pinned){ const v=Math.round(Scene._t()*100); if(+tod.value!==v){ tod.value=v; paintFill(tod); } }
   }
 
   /* ---------------- controls ---------------- */
@@ -1327,6 +1507,12 @@
 
   toggleBtn('bell','showBell'); toggleBtn('paths','showPaths',()=>{ if(S.showPaths) setInsight('The numbers show how many <b>paths</b> reach each bin. Lots of ways to the middle. Only <b>one</b> way to each edge.',''); });
   document.getElementById('musicbtn').addEventListener('click',function(){ firstTouch(); setMusic(!S.music); });
+  toggleBtn('weatherbtn','weather',()=>{ saveProgress(); setInsight(S.weather? 'Weather on. Rare showers, shooting stars and soft lightning drift through the sky.' : 'Weather off. A calm, clear sky.',''); });
+
+  // Day/night control: the slider grabs the sky clock and holds a time; Live hands it back to the day.
+  const todI=document.getElementById('tod'), todLive=document.getElementById('todlive');
+  todI.addEventListener('input',()=>{ Scene.setTime(+todI.value/100); todLive.setAttribute('aria-pressed','false'); });
+  todLive.addEventListener('click',()=>{ Scene.live(); todLive.setAttribute('aria-pressed','true'); });
 
   // Options / Lab are ONE accordion: opening a panel closes its sibling; tapping the open one closes it.
   // (The old independent toggles let both panels stack open at once.)
@@ -1579,13 +1765,15 @@
   const PKEY='plink.progress.v1';
   function saveProgress(){ try{ localStorage.setItem(PKEY, JSON.stringify({ v:1, lastMode:S.mode, chapter:learn.idx,
     completed:CHAPTERS.map((c,i)=>!!learn.completed[i]),
-    audio:{ music:S.music, sfx:S.sfx },
+    audio:{ music:S.music, sfx:S.sfx }, scene:{ weather:S.weather },
     levers:{ rows:S.rows, bias:S.bias, momentum:S.momentum, wild:S.wild, logScale:S.logScale, compare:S.compare } })); }catch(e){} }
   function initLearn(){
     let p=null; try{ p=JSON.parse(localStorage.getItem(PKEY)||'null'); }catch(e){}
     if(!p || p.v!==1) return;
     if(p.audio){ S.music=p.audio.music!==false; S.sfx=p.audio.sfx!==false;   // default ON when the field is absent
       const mb=document.getElementById('musicbtn'); if(mb) mb.setAttribute('aria-pressed',S.music?'true':'false'); }
+    if(p.scene){ S.weather=p.scene.weather!==false;   // default ON when absent
+      const wb=document.getElementById('weatherbtn'); if(wb) wb.setAttribute('aria-pressed',S.weather?'true':'false'); }
     if(Array.isArray(p.completed)) p.completed.forEach((v,i)=>{ if(v && i<CHAPTERS.length) learn.completed[i]=true; });
     learn.idx=Math.max(0,Math.min(CHAPTERS.length-1, p.chapter|0));
     if(p.lastMode==='learn') enterLearn(learn.idx);   // resume the story where they left off
