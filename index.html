@@ -124,9 +124,6 @@
     opacity:0; transform:translateY(10px) scale(.994); animation:rise .8s cubic-bezier(.2,.8,.2,1) forwards; }
   @keyframes rise{ to{ opacity:1; transform:none; } }
   canvas{ display:block; width:100%; height:100%; touch-action:none; }
-  .hint{ position:absolute; left:50%; bottom:15px; transform:translateX(-50%); font-size:12.5px; color:var(--ink-dim);
-    font-weight:600; pointer-events:none; background:rgba(8,14,20,.55); border:1px solid var(--line);
-    padding:6px 13px; border-radius:999px; backdrop-filter:blur(5px); transition:opacity .5s; }
 
   .controls{ flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; }
   .group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -436,7 +433,6 @@
 
   <div class="cabinet">
     <canvas id="board"></canvas>
-    <div class="hint" id="hint">Drop one ball and watch it. Then pour a hundred.</div>
     <!-- Learn-only corner controls: a kid can step back or quit to Play, but can never click past the lesson -->
     <button class="learnback" id="learnback" type="button">Back</button>
     <button class="learnquit" id="learnquit" type="button">Quit to Play</button>
@@ -1044,7 +1040,7 @@
       const moonX=lerp(0.16,0.84,clamp(mu,0,1)), moonArc=Math.sin(clamp(mu,0,1)*Math.PI), moonAbove=(t>=0.78||t<=0.22);
       return { sunX, sunArc, sunAbove, moonX, moonArc, moonAbove }; }
     // ---- offscreen pre-renders (built once per resize, blitted every frame) ----
-    let starSprite, glowSprite, cloudSprite, tintCanvas, glintSprite;
+    let starSprite, glowSprite, cloudSprite, tintCanvas;
     let nui, iki;    // land geometry: the two Mokes, cached once per resize (never per frame)
     function canvas(w,h){ const c=document.createElement('canvas'); c.width=Math.max(1,w|0); c.height=Math.max(1,h|0); return c; }
     function makeRadial(size,inner,outer){ const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); const r=size/2;
@@ -1074,8 +1070,6 @@
     const AUR_COLS=[[127,232,169],[86,222,214],[92,168,232]];   // the ribbon walks green -> teal -> blue along a stroke (drawaurora-style)
     let auroraDabs=null;   // built lazily, once
     // a soft round glint, stretched wide+flat at blit time into an elongated highlight on the water
-    function makeGlintSprite(){ const s=48, c=canvas(s,s), g=c.getContext('2d'); const gr=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
-      gr.addColorStop(0,'rgba(255,255,255,0.9)'); gr.addColorStop(0.4,'rgba(255,255,255,0.28)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,s,s); return c; }
     function makeCloudSprite(){ const w=340,h=170,c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d');
       const puffs=[[90,110,60],[150,90,78],[210,100,66],[130,120,54],[250,116,44],[60,120,40]];
       for(const [x,y,r] of puffs){ const gs=g.createRadialGradient(x,y+r*0.35,0,x,y+r*0.35,r*1.1); gs.addColorStop(0,'rgba(120,140,170,0.28)'); gs.addColorStop(1,'rgba(120,140,170,0)'); g.fillStyle=gs; g.beginPath(); g.arc(x,y+r*0.35,r*1.1,0,7); g.fill(); }
@@ -1091,7 +1085,6 @@
       horizonY=Math.max(1,Math.round(H*0.60));
       shoreY=Math.max(horizonY+8,Math.round(H*0.845));   // the sea runs horizonY..shoreY; the foreground sand runs shoreY..H
       starSprite=makeStarSprite(Math.min(W,1600),Math.round(horizonY));
-      glintSprite=glintSprite||makeGlintSprite();
       cloudSprite=cloudSprite||makeCloudSprite(); glowSprite=makeRadial(256,'rgba(255,255,255,1)','rgba(255,255,255,0)');
       // land geometry, computed once: the two hero islands (the Mokes) alone on an open horizon
       // Island HEIGHTS scale with island WIDTH (not the sky height), so a tall portrait viewport can never
@@ -1187,25 +1180,11 @@
       // just the two Mokes on an open horizon: darkest of all, each with its soft lit crest rim
       fillIsle(nui,horizonY,isleColor(P,0.34)); fillIsle(iki,horizonY,isleColor(P,0.30));
       rimIsle(nui,P); rimIsle(iki,P); }
-    // ---- sea: base gradient + a soft glitter beam under the sun/moon + ripples (no mirror reflection) ----
-    // a soft reflected-light column under the sun/moon plus a few elongated glints (no fillRect specks)
-    function drawGlitter(P,body,time,seaH){ const bx=body.x, tint=body.tint;
-      sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,seaH); sctx.clip(); sctx.globalCompositeOperation='lighter';
-      const topW=Math.max(8,body.r*0.7), botW=Math.min(W*0.34,Math.max(body.r*4,seaH*1.4));   // feathered trapezoid, edges dissolve, widening with depth
-      const bg=sctx.createLinearGradient(0,horizonY,0,horizonY+seaH); bg.addColorStop(0,rgb(tint,0.34)); bg.addColorStop(0.5,rgb(tint,0.14)); bg.addColorStop(1,rgb(tint,0));
-      sctx.fillStyle=bg; sctx.beginPath(); sctx.moveTo(bx-topW/2,horizonY); sctx.lineTo(bx+topW/2,horizonY); sctx.lineTo(bx+botW/2,horizonY+seaH); sctx.lineTo(bx-botW/2,horizonY+seaH); sctx.closePath(); sctx.fill();
-      if(!S.lite){ const n=reduce?6:14;                                          // soft glints, jittered, wider+flatter with depth; frozen (not hidden) under reduce
-        for(let i=0;i<n;i++){ const dep=(i+0.5)/n, y=horizonY+dep*seaH, ph=reduce?0:Math.sin(time*1.1+i*1.7), rx=bx+ph*(6+dep*botW*0.4),
-            gw=(10+dep*46)*(0.7+0.3*(reduce?0.5:Math.sin(time*2+i))), gh=gw*(0.16+0.05*dep);
-          sctx.globalAlpha=(0.5*(1-dep*0.6))*(0.6+0.4*Math.abs(ph||0.5)); sctx.drawImage(glintSprite,rx-gw/2,y-gh/2,gw,gh); } sctx.globalAlpha=1; }
-      sctx.restore(); sctx.globalCompositeOperation='source-over'; }
+    // ---- sea: a clean calm gradient + a horizon-haze wash + foam/ripples. No mirror reflection and no
+    //      sun/moon glitter beam (that bright triangle lined up under an island and read as a reflection). ----
     function drawSea(P,body,time){ const seaBot=shoreY, seaH=seaBot-horizonY;   // the sea now stops at the shoreline; the sand is drawn on top of the bottom band
       const g=sctx.createLinearGradient(0,horizonY,0,seaBot); g.addColorStop(0,rgb(P.seaTop)); g.addColorStop(0.5,rgb(lerpRGB(P.seaTop,P.seaDeep,0.5))); g.addColorStop(1,rgb(P.seaDeep)); sctx.fillStyle=g; sctx.fillRect(0,horizonY,W,seaH);
-      // (The full-scene mirror reflection was removed: reflecting the dark islands read as murky shards
-      //  and clashed with the glitter path. The sea is now a clean gradient lit by the sun/moon glitter
-      //  beam, foam and ripples below, which reads far calmer + more polished.)
       const hz=sctx.createLinearGradient(0,horizonY,0,horizonY+seaH*0.32); hz.addColorStop(0,rgb(P.horizon,0.5)); hz.addColorStop(1,rgb(P.horizon,0)); sctx.fillStyle=hz; sctx.fillRect(0,horizonY,W,seaH*0.32);   // horizon haze wash sinks contrast + hides the seam
-      if(body) drawGlitter(P,body,time,seaH);
       drawRipples(seaH,time);
       const vg=sctx.createLinearGradient(0,seaBot-seaH*0.42,0,seaBot); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,rgb(P.seaDeep,0.5)); sctx.fillStyle=vg; sctx.fillRect(0,seaBot-seaH*0.42,W,seaH*0.42); }   // deepen the water right at the waterline
     function drawHorizonGlow(P){ const g=sctx.createLinearGradient(0,horizonY-6,0,horizonY+8); g.addColorStop(0,rgb(P.light,0)); g.addColorStop(0.5,rgb(P.light,0.35*clamp(1-P.starK*0.6,0.2,1))); g.addColorStop(1,rgb(P.light,0)); sctx.globalCompositeOperation='lighter'; sctx.fillStyle=g; sctx.fillRect(0,horizonY-6,W,14); sctx.globalCompositeOperation='source-over'; }
@@ -1546,7 +1525,7 @@
   }
 
   /* ---------------- controls ---------------- */
-  function firstTouch(){ if(interacted) return; interacted=true; document.getElementById('drop1').classList.remove('pulse'); document.getElementById('hint').style.opacity='0'; }
+  function firstTouch(){ if(interacted) return; interacted=true; document.getElementById('drop1').classList.remove('pulse'); }
   function toggleBtn(id,key,after){ const el=document.getElementById(id); el.addEventListener('click',()=>{ S[key]=!S[key]; el.setAttribute('aria-pressed',S[key]?'true':'false'); if(after) after(); }); }
 
   document.getElementById('drop1').addEventListener('click',()=>{ firstTouch(); ensureAudio(); dropOne(); });

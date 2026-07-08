@@ -73,17 +73,17 @@ beach and its twin islets (the Mokes), but that **place name is deliberately nev
 anywhere** (J: "it should just be known") — copy, comments, and docs say "the islands" / "the
 Mokes", not the town. Spec:
 `~/.claude/plans/still-ugly-as-hell-dapper-comet.md`. Adapted from a 3-way scene-engine competition
-(Scene B won: a clean glitter-lit sea + aurora; the full-scene mirror reflection it originally shipped
-with was later removed, see the "Scene + dock polish pass" note below). Key seams:
+(Scene B won: a clean calm sea + aurora; the full-scene mirror reflection AND the sun/moon glitter beam
+it originally shipped with were both later removed, see the "Scene + dock polish pass" note below). Key seams:
 
 - **`Scene` IIFE** (grep `==================== SCENE`): a full-bleed fixed background canvas `#scene`
   (`z-index:0`) painting a keyframe day/night sky, celestial arc (sun by day, moon by night), the
   **two twin islands (the Mokes)** — Moku Nui larger-left, Moku Iki right — rendered by
   `islePoints`/`isleColor`/`fillIsle`/`rimIsle` in `drawLand` as CLEAR dark silhouettes (island
   colour is a darkened tint of the sky right above the sea, so they read against any hour) with a
-  lit crest rim, alone on an open horizon (no ridges behind them); and a **clean gradient sea** lit by a
-  sun/moon **glitter path** (`drawGlitter`) plus horizon haze, foam and ripples (the full-scene mirror
-  reflection was REMOVED — reflecting the dark islands read as murky shards; see the polish note below).
+  lit crest rim, alone on an open horizon (no ridges behind them); and a **clean calm gradient sea** with
+  a horizon-haze wash, foam and ripples (BOTH the full-scene mirror reflection AND the sun/moon glitter
+  beam were REMOVED — each read as a reflection of the dark islands; see the polish note below).
   The old line-drawn palm frame was DELETED (read as a "spiderweb" — first thing to go). `KEYS[]` is the
   phase color table (Night/Dawn/Sunrise/Day/Golden/Dusk/Night). Public API: `resize/frame/begin/easeTo/
   release/setTime/addRipple`. Pre-render-once/blit pattern like the marble sprites; the glitter beam
@@ -298,11 +298,14 @@ as a black bar), and the buttons looked flat. Verified live at day/noon/golden/d
 landscape, and a short landscape phone; then a 4-dimension adversarial-review Workflow (19 agents) that
 confirmed ZERO functional/render/CSS regressions (only comment + this-doc drift, all fixed here).
 
-- **Water mirror REMOVED** (`drawSea`). Reflecting the dark islands cast murky upside-down shards that
-  clashed with the glitter path. The flipped-blit mirror and its offscreens (`mirrorCanvas`/`blurCanvas`/
-  `mctx`/`blurCtx`, incl. the build in `resize()`) are all deleted. The sea is now base gradient + horizon
-  haze + the sun/moon **glitter beam** (`drawGlitter`, kept) + foam + ripples + waterline vignette. Reads
-  far calmer. If reflections ever return, do a SKY-ONLY version (never reflect the dark islands).
+- **Water mirror AND glitter beam REMOVED** (`drawSea`). First the flipped-blit mirror + its offscreens
+  (`mirrorCanvas`/`blurCanvas`/`mctx`/`blurCtx`, incl. the `resize()` build) — reflecting the dark islands
+  cast murky shards. Then, in a same-day follow-up, the sun/moon **glitter beam** (`drawGlitter` + its
+  `glintSprite`/`makeGlintSprite`) went too: the bright downward triangle lined up under an island and
+  ALSO read as a reflection (J: "the reflection seems to still be there"). The sea is now just base
+  gradient + horizon-haze wash + foam + ripples + waterline vignette. Genuinely clean/calm. `drawSea` still
+  takes a `body` param but no longer uses it. If a light path ever returns, keep it OFF the island x and
+  soft (never a hard triangle), and never reflect the islands.
 - **Sun rebuilt** (`drawCelestial`) to match the moon's crispness. The old sun was one hard `r*7` halo
   (alpha 0.55) + a disc tinted 60% by ambient `P.light` (muddy peach ball in a white blob). Now: `r=lerp(
   23,33,sunArc)`, TWO soft `lighter` blooms (a WIDE `r*6.5` at alpha `0.15*clamp(sunArc+0.35)` that fades
@@ -324,6 +327,10 @@ confirmed ZERO functional/render/CSS regressions (only comment + this-doc drift,
   boxes on the frosted glass), plus a faint top sheen `box-shadow:inset 0 1px 0 rgba(255,255,255,.07)` on
   the base `button` so they read as tactile chips. Active toggles keep `box-shadow:none` (the tint IS the
   signal); `.primary`/seg/minibar own their own shadow rules, so no collision. Dock `gap` 12 -> 10.
+- **Hint pill DELETED** (same follow-up). The floating `#hint` pill over the board ("Drop one ball and
+  watch it. Then pour a hundred.") was killed (J: "unnecessary and hideous"). Removed the `<div id="hint">`,
+  its `.hint` CSS rule, and the `#hint` reference in `firstTouch()` (the pulse on Drop 1 still stops on
+  first interaction). Learn's own `hint:` chapter data is unrelated and untouched.
 
 ## The four levers (all in Lab mode)
 
