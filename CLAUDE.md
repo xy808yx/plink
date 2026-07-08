@@ -73,18 +73,20 @@ beach and its twin islets (the Mokes), but that **place name is deliberately nev
 anywhere** (J: "it should just be known") — copy, comments, and docs say "the islands" / "the
 Mokes", not the town. Spec:
 `~/.claude/plans/still-ugly-as-hell-dapper-comet.md`. Adapted from a 3-way scene-engine competition
-(Scene B won: mirror-reflected sea + aurora). Key seams:
+(Scene B won: a clean glitter-lit sea + aurora; the full-scene mirror reflection it originally shipped
+with was later removed, see the "Scene + dock polish pass" note below). Key seams:
 
 - **`Scene` IIFE** (grep `==================== SCENE`): a full-bleed fixed background canvas `#scene`
   (`z-index:0`) painting a keyframe day/night sky, celestial arc (sun by day, moon by night), the
   **two twin islands (the Mokes)** — Moku Nui larger-left, Moku Iki right — rendered by
   `islePoints`/`isleColor`/`fillIsle`/`rimIsle` in `drawLand` as CLEAR dark silhouettes (island
   colour is a darkened tint of the sky right above the sea, so they read against any hour) with a
-  lit crest rim, alone on an open horizon (no ridges behind them); and a **mirror-reflected sea** (samples `scv` each
-  paint, flips it in banded, plus a moonglitter path + night aurora-reflection columns). The old
-  line-drawn palm frame was DELETED (read as a "spiderweb" — first thing to go). `KEYS[]` is the phase color table
-  (Night/Dawn/Sunrise/Day/Golden/Dusk/Night). Public API: `resize/frame/begin/easeTo/release/
-  setTime/addRipple`. Pre-render-once/blit pattern like the marble sprites; the reflection band loop
+  lit crest rim, alone on an open horizon (no ridges behind them); and a **clean gradient sea** lit by a
+  sun/moon **glitter path** (`drawGlitter`) plus horizon haze, foam and ripples (the full-scene mirror
+  reflection was REMOVED — reflecting the dark islands read as murky shards; see the polish note below).
+  The old line-drawn palm frame was DELETED (read as a "spiderweb" — first thing to go). `KEYS[]` is the
+  phase color table (Night/Dawn/Sunrise/Day/Golden/Dusk/Night). Public API: `resize/frame/begin/easeTo/
+  release/setTime/addRipple`. Pre-render-once/blit pattern like the marble sprites; the glitter beam
   + shimmer are the only per-paint heavy work.
 - **The clock.** The app owns wall time. `Scene.frame(now,dt)` (called from the board's `frame()`)
   advances `sceneT` by `dt/DAY_LEN` (DAY_LEN=360s) only when `running && started && !document.hidden`,
@@ -92,7 +94,7 @@ Mokes", not the town. Spec:
   on the veil tap (Play drifts; Learn waits for its chapter). **Learn borrows the sky**: `gotoChapter`
   calls `Scene.easeTo(CHAPTER_SKY[idx], 4)` (shortest-direction ease, holds at the hour); `exitLearn`
   calls `Scene.release()` to resume the free-running day. `reduce` freezes at a golden still; `S.lite`
-  (set by the board's ftAvg) drops the reflection/shimmer. **resize() clamps W/H to >=1** so a 0-size
+  (set by the board's ftAvg) drops the glitter glints/shimmer. **resize() clamps W/H to >=1** so a 0-size
   viewport never builds a 0-dim sprite (drawImage throws on those — real bug caught in review).
 - **The board canvas is transparent now.** `draw()` paints ONLY pegs/marbles/histogram/bell; the
   frosted-glass `.cabinet` (`backdrop-filter:blur`) + the Scene behind it are the backdrop. Old
@@ -127,7 +129,8 @@ Mokes", not the town. Spec:
   rocket up from the horizon, `burst` sprays ~46-88 **pre-rendered glow-dot sparks** (`fwSprite`
   cache, one soft radial per colour, saturated purple/green/gold/pink with a small hot core — the
   drawaurora dot look, NOT streaks), `updateFireworks(dt)` runs gravity/drag/fade, `drawFireworks`
-  blits additively. Drawn **before `drawSea`** so the mirror-calm water reflects every bloom. `dt`
+  blits additively. Drawn **before `drawSea`** (the opaque sea band paints over any spark that dips below
+  the horizon). `dt`
   comes from `time-lastDrawT` inside `Scene.draw` (tied to the 30fps-capped paint, so it pauses with
   the tab). Sparks self-cap at 1000. Fireworks only auto-launch while `fwOn` (the zen toggle).
 - **Clear Mokes.** The two islands were muddy bumps behind a tall ridge; now they are the hero
@@ -148,11 +151,12 @@ Mokes", not the town. Spec:
   - **Glitter beam** (`drawGlitter`): the blocky `fillRect` specks are gone. Now a feathered trapezoid
     light column (widening with depth, `body.tint`) plus a few soft elongated GLINT dabs (`glintSprite`,
     blitted `lighter`, jittered). Glints skipped under `S.lite`; phase frozen under `reduce`.
-  - **Sea reflection** (`drawSea`): the venetian-blind band loop is gone. Now ONE soft flipped blit:
-    capture the sky+land band into `mirrorCanvas` (**source rect is DEVICE px** `W*DPR x horizonY*DPR`,
-    dest is CSS px — the DPR gotcha), cheap-blur via `blurCanvas` (1/4 downscale), blit flipped once
-    with `translate(_,horizonY*2)+scale(1,-1)` at alpha 0.42 + a gentle wobble/squash + a horizon haze
-    wash. Skipped entirely under `S.lite` (base gradient + haze + glitter still pretty).
+  - **Sea reflection** (`drawSea`) — LATER REMOVED (see "Scene + dock polish pass"). This pass had reworked
+    it into ONE soft flipped blit (capture sky+land into `mirrorCanvas`, cheap-blur via `blurCanvas`, blit
+    flipped with `translate(_,horizonY*2)+scale(1,-1)` at alpha 0.42), but the whole mirror was later
+    deleted: reflecting the dark islands read as murky shards and clashed with the glitter path.
+    `mirrorCanvas`/`blurCanvas`/`mctx`/`blurCtx` and their build in `resize()` are all gone; `drawSea` is
+    now base gradient + horizon-haze wash + glitter beam + foam/ripples + waterline vignette.
   - **Layered hills (REMOVED).** The painterly pass briefly added three receding sine-profile ridges
     behind the Mokes, but their crests read as extra islands (J: "there are 4 islands, we only want
     the 2 Mokes"), so `LAYERS`/`ridgeProfile`/`drawRidge`/`ridgeProfiles` were deleted. `drawLand`
@@ -173,8 +177,7 @@ lightning, kill the "Plink" intro wordmark, and "the non-minimized menu still lo
   moonlit by `P.starK`; each berm a shade lighter than the last), plus a wet-sand sheen, a breathing FOAM
   waterline, lit berm crests, and a bottom vignette. GOTCHA fixed: a sine berm dipping below the waterline
   left an uncovered dark seam, so `drawShore` FIRST lays a **flat wet-sand base** (`fillRect` shoreY..H)
-  that the sine berms draw on top of. The mirror reflection is unaffected (it still samples `scv` `0..
-  horizonY` with the DPR source-rect trick and is clipped to the sea rect).
+  that the sine berms draw on top of.
 - **Weather (all rare, ambient, gated by `S.weather` + `reduce`; motion only).** In the Scene: **shooting
   stars** (`meteors[]`/`spawnMeteor`/`updateMeteors`/`drawMeteors`, night-weighted by `starK`, a bright
   additive streak + glow head), **rain** (`rainDrops[]` built in `resize`, `updateRain` eases `rainLevel`
@@ -231,9 +234,10 @@ directions -> synthesis) + a 4-lens adversarial-review Workflow that caught 3 re
 - **Container softened** slab -> floating card: `.dock` + `.insight` border to a hairline (`--line` 55%)
   and shadow from `--shadow-card` to a soft `0 14px 44px -30px`. Kept the `--glass` fill + blur, so day-sky
   legibility is unchanged (verified over a real noon sky).
-- **Landscape void fix.** The rail was a full-height slab (`height:100%`) with a dead middle. Now
-  `max-height:100%; height:auto; align-self:center` so it SHRINK-WRAPS to content and floats CENTERED in
-  the column (scene above/below); when content overflows a short landscape phone it caps at 100% and
+- **Landscape void fix.** The rail was a full-height slab (`height:100%`) with a dead middle. It became
+  `max-height:100%; height:auto; align-self:center` (shrink-wrap to content), then this pass was superseded:
+  `align-self:start` now TOP-anchors it (see "Scene + dock polish pass") so an open Options fits without
+  scrolling. When content overflows a short landscape phone it caps at 100% and
   scrolls with the SOLID `--glass` fill intact (legibility never breaks). GOTCHA the review caught: naively
   dropping the sticky footer regressed a deliberate prior fix (Zen|Minimal scrolled below the fold on a
   short landscape phone, worse with Options open). Restored `.dock .modesrow{ position:sticky; bottom:0;
@@ -285,6 +289,41 @@ landscape via the temp `window.__scene` hook (removed before ship); adversarial-
   `transition` list, so verifying an aria-pressed toggle's FILL in a hidden preview tab shows the start
   colour (the background transition never advances when the tab is hidden) while the text snaps — bypass
   with `el.style.transition='none'` when probing computed styles.
+
+## Scene + dock polish pass ("still feels unpolished")
+
+J: the sun looked bad (the moon was fine), the water reflection made it feel muddy, the full-mode
+landscape menu felt "yucky" (floated mid-column, opening Options forced a scroll, and Zen|Minimal read
+as a black bar), and the buttons looked flat. Verified live at day/noon/golden/dusk/night + portrait,
+landscape, and a short landscape phone; then a 4-dimension adversarial-review Workflow (19 agents) that
+confirmed ZERO functional/render/CSS regressions (only comment + this-doc drift, all fixed here).
+
+- **Water mirror REMOVED** (`drawSea`). Reflecting the dark islands cast murky upside-down shards that
+  clashed with the glitter path. The flipped-blit mirror and its offscreens (`mirrorCanvas`/`blurCanvas`/
+  `mctx`/`blurCtx`, incl. the build in `resize()`) are all deleted. The sea is now base gradient + horizon
+  haze + the sun/moon **glitter beam** (`drawGlitter`, kept) + foam + ripples + waterline vignette. Reads
+  far calmer. If reflections ever return, do a SKY-ONLY version (never reflect the dark islands).
+- **Sun rebuilt** (`drawCelestial`) to match the moon's crispness. The old sun was one hard `r*7` halo
+  (alpha 0.55) + a disc tinted 60% by ambient `P.light` (muddy peach ball in a white blob). Now: `r=lerp(
+  23,33,sunArc)`, TWO soft `lighter` blooms (a WIDE `r*6.5` at alpha `0.15*clamp(sunArc+0.35)` that fades
+  fully to nothing — no hard edge — + a TIGHT `r*2.7` at alpha `0.5*clamp(sunArc+0.28)`), and a crisp disc
+  gradient whose CORE stays near-white (`255,253,246`) at every hour and only the RIM carries `P.light` (so
+  it never goes muddy at noon but still goes gold at golden hour). Offset-lit (`x-r*0.16,y-r*0.16`) like the
+  moon. The moon code is unchanged.
+- **Landscape rail TOP-anchored.** `.dock` in landscape went `align-self:center` -> `align-self:start`. The
+  centering wasted the top of the column, which is exactly why opening Options overflowed and scrolled;
+  top-anchoring reclaims it, so Options fits with no scroll on any normal tablet/desktop height, and the
+  header no longer floats mid-column.
+- **Zen | Minimal band killed.** The near-opaque `color-mix(--night 96%)` sticky footer read as a black bar
+  bolted on. Now `.dock .modesrow{ margin-top:auto }` = clean chips at the card bottom; the sticky FROSTED
+  (`var(--glass)`) footer is scoped to `@media (orientation:landscape){ .dock.scrolling .modesrow{...} }`
+  and only appears when the rail ACTUALLY overflows. `.scrolling` is a JS flag: `syncDockScroll()` toggles
+  it from `setPanel` + `remeasure`, and REMOVES the class before measuring so the footer's own padding
+  can't self-latch it (no hysteresis). Works at any height; Zen|Minimal never drop below the fold.
+- **Buttons crisper.** `--surface` .055 -> .09, `--surface-2` .12 -> .17 (they were near-invisible ghost
+  boxes on the frosted glass), plus a faint top sheen `box-shadow:inset 0 1px 0 rgba(255,255,255,.07)` on
+  the base `button` so they read as tactile chips. Active toggles keep `box-shadow:none` (the tint IS the
+  signal); `.primary`/seg/minibar own their own shadow rules, so no collision. Dock `gap` 12 -> 10.
 
 ## The four levers (all in Lab mode)
 

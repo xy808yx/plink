@@ -21,7 +21,7 @@
        Rare-edge pop shifts from teal-cyan toward AURORA GREEN so the far-out marble glow echoes the sky. */
     --night:#0A1220;                                   /* flat fallback behind the scene canvas */
     --ink:#F4F8FF; --ink-dim:rgba(244,248,255,.66); --ink-faint:rgba(244,248,255,.40);
-    --surface:rgba(255,255,255,.055); --surface-2:rgba(255,255,255,.12);
+    --surface:rgba(255,255,255,.09); --surface-2:rgba(255,255,255,.17);
     --glass:rgba(13,24,40,.42);                        /* frosted board/card fill over the scene */
     --line:rgba(180,210,240,.17);
     /* marble semantics preserved: calm warm middle ramp, luminous aurora edge (mirrored to JS binInfo) */
@@ -86,8 +86,8 @@
   .topbar{ grid-area:head; }
   .cabinet{ grid-area:board; }
   /* DOCK wraps all three control blocks. Portrait = a capped, internally-scrolling bottom shelf,
-     so revealing Lab/Colors scrolls the dock instead of stealing height from the board. */
-  .dock{ grid-area:dock; display:flex; flex-direction:column; gap:var(--sp-3); min-height:0; min-width:0;
+     so revealing Options/Lab scrolls the dock instead of stealing height from the board. */
+  .dock{ grid-area:dock; display:flex; flex-direction:column; gap:10px; min-height:0; min-width:0;
     max-height:min(50vh,340px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;  /* fits the default control stack (~284px) so Play buttons never scroll; still caps an OPEN Options/Lab panel so it scrolls instead of crushing the board */
     padding:var(--sp-3);
     background:linear-gradient(180deg, color-mix(in srgb, var(--aurora) 6%, transparent), transparent 34%), var(--glass);
@@ -135,6 +135,7 @@
      reading as a grid of dark boxes and the controls float on the frosted pane instead. */
   button{ font-family:var(--font); font-size:14.5px; font-weight:700; color:var(--ink); background:var(--surface);
     border:1px solid transparent; border-radius:var(--r-ctl); padding:11px 15px; min-height:44px; min-width:0; cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07);   /* faint top sheen: reads as a tactile chip, not a flat dark box */
     display:inline-flex; align-items:center; justify-content:center; gap:7px; transition:transform .12s var(--ease-settle), background .18s var(--ease-settle), border-color .18s, box-shadow .18s; }
   /* Touch-first (iPad / iPhone Pro): hover styling is gated so it never sticks after a tap on iOS. */
   @media (hover:hover){ button:hover{ background:var(--surface-2); } button.primary:hover{ filter:brightness(1.05); } }
@@ -245,7 +246,7 @@
       justify-content:center;
     }
     .topbar{ display:none; }                        /* reclaim the height; count mirrors into the rail header */
-    .dock{ max-height:100%; height:auto; align-self:center; gap:var(--sp-3); }   /* float the rail as a content-sized card centered in the column, not a full-height slab (kills the mid-rail void) */
+    .dock{ max-height:100%; height:auto; align-self:start; gap:10px; }   /* anchor the content-sized card to the TOP of the column (not floating mid-height, and not a full-height slab): reclaims the vertical space centering wasted, so opening Options fits without scrolling on any normal tablet/desktop height */
     .dock .controls{ display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-2); align-content:start; }
     .dock .group{ display:contents; }
     .dock .spacer{ display:none; }
@@ -258,20 +259,19 @@
     .railhead-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:3px; }
     .railtitle{ font-size:28px; }
     #dockcount{ display:block; text-align:right; min-width:0; }
-    /* Pin the mode footer to the bottom of the rail. margin-top:auto handles the tall rail; position:sticky
-       keeps Zen | Minimal reachable at the visible bottom even when a short landscape phone makes the rail
-       scroll (where an auto margin would collapse to 0 and drop them below the fold). Frosted backing so the
-       scrolling controls read cleanly behind it. */
-    /* The shrink-wrapped rail floats centered when its content fits; when a short landscape phone makes
-       the rail scroll, sticky keeps Zen | Minimal pinned at the visible bottom. The backing is a
-       translucent night frost (lighter than the old opaque bar) that still covers the controls scrolling
-       behind it; with the card content-sized, margin-top:auto collapses to 0 so it stays a clean footer. */
-    .dock .modesrow{ margin-top:auto; position:sticky; bottom:0; z-index:2;
-      padding:var(--sp-3) 0 var(--sp-2); border-top:1px solid color-mix(in srgb, var(--line) 45%, transparent);
-      background:color-mix(in srgb, var(--night) 96%, transparent);
-      backdrop-filter:blur(14px) saturate(1.05); -webkit-backdrop-filter:blur(14px) saturate(1.05); }
+    /* Footer anchor: margin-top:auto pushes Zen | Minimal to the bottom of the content-sized rail; the
+       sticky-when-overflowing frosted-footer behavior lives in the .dock.scrolling landscape rule below. */
+    .dock .modesrow{ margin-top:auto; }   /* at normal heights the rail fits, so Zen | Minimal are just clean chips at the card bottom (no band). The sticky frosted footer only kicks in when the rail actually overflows (.scrolling), where they would otherwise drop below the fold */
     .railfoot{ display:block; margin-top:0; padding-top:var(--sp-2); border-top:none;
       font-size:11.5px; letter-spacing:.05em; font-weight:600; color:var(--ink-faint); text-align:center; }
+  }
+  /* Only when the landscape rail actually OVERFLOWS (JS sets .scrolling): pin Zen | Minimal to the visible
+     bottom with a frosted backing so they never drop below the fold, and cover the controls scrolling
+     behind. When the rail fits, no band at all: they read as clean chips like everything else. */
+  @media (orientation:landscape){
+    .dock.scrolling .modesrow{ position:sticky; bottom:0; z-index:2; padding:var(--sp-2) 0 0;
+      border-top:1px solid color-mix(in srgb, var(--line) 40%, transparent);
+      background:var(--glass); backdrop-filter:blur(14px) saturate(1.05); -webkit-backdrop-filter:blur(14px) saturate(1.05); }
   }
   /* LEARN: the board takes the stage; the lesson collapses to a slim frosted bottom bar. The sandbox
      control rows stay in the DOM (hidden) so a chapter can BORROW a lever into #learnstage. */
@@ -1013,8 +1013,8 @@
   /* ==================== SCENE (the world) ====================
      A full-bleed background canvas painting an island day-night dreamscape in
      drawaurora.com's flat painterly language: a keyframe-interpolated sky, a celestial arc,
-     atmospheric-haze silhouettes with the two Mokulua islets, and a mirror-reflected sea with a
-     moonglitter path and (at night) brushed aurora ribbons reflecting down the water. Runs on an
+     atmospheric-haze silhouettes with the two Mokulua islets, and a clean gradient sea lit by a
+     sun/moon glitter path (the full-scene mirror reflection was removed). Runs on an
      accelerated clock the app owns; Learn borrows the sky per chapter (easeTo/release). Wrapped in
      its own IIFE so its private helpers never collide with the board's draw functions. */
   const Scene=(function(){
@@ -1093,9 +1093,6 @@
       starSprite=makeStarSprite(Math.min(W,1600),Math.round(horizonY));
       glintSprite=glintSprite||makeGlintSprite();
       cloudSprite=cloudSprite||makeCloudSprite(); glowSprite=makeRadial(256,'rgba(255,255,255,1)','rgba(255,255,255,0)');
-      // sea reflection offscreens (CSS-px, NOT DPR-scaled): mirror captures the sky band, blur softens it
-      mirrorCanvas=canvas(W,horizonY); mctx=mirrorCanvas.getContext('2d');
-      blurCanvas=canvas(Math.max(2,W>>2),Math.max(2,horizonY>>2)); blurCtx=blurCanvas.getContext('2d');
       // land geometry, computed once: the two hero islands (the Mokes) alone on an open horizon
       // Island HEIGHTS scale with island WIDTH (not the sky height), so a tall portrait viewport can never
       // stretch them into creepy spikes; a horizonY cap keeps a short landscape phone from looming. Positions
@@ -1145,9 +1142,18 @@
       tc.clearRect(0,0,tintCanvas.width,tintCanvas.height); tc.globalCompositeOperation='source-over'; tc.drawImage(sprite,0,0,w,h);
       tc.globalCompositeOperation='source-in'; tc.fillStyle=rgb(tint); tc.fillRect(0,0,w,h); tc.globalCompositeOperation='source-over'; sctx.drawImage(tintCanvas,0,0,w,h,x,y,w,h); }
     function drawCelestial(P,C){ let obj=null;
-      if(C.sunAbove){ const x=C.sunX*W, y=horizonY-(horizonY*0.02+C.sunArc*horizonY*0.80), r=lerp(26,40,C.sunArc);
-        sctx.globalCompositeOperation='lighter'; const haloR=r*7; sctx.globalAlpha=0.55*clamp(C.sunArc+0.25,0,1); tintDraw(glowSprite,x-haloR,y-haloR,haloR*2,haloR*2,P.light); sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
-        const dg=sctx.createRadialGradient(x,y,0,x,y,r); dg.addColorStop(0,'rgba(255,252,238,1)'); dg.addColorStop(0.6,rgb(P.light,1)); dg.addColorStop(1,rgb([P.light[0]*0.8,P.light[1]*0.6,P.light[2]*0.4],1)); sctx.fillStyle=dg; sctx.beginPath(); sctx.arc(x,y,r,0,7); sctx.fill();
+      if(C.sunAbove){ const x=C.sunX*W, y=horizonY-(horizonY*0.02+C.sunArc*horizonY*0.80), r=lerp(23,33,C.sunArc);
+        // TWO soft blooms (like the moon, warmer + brighter): a WIDE faint halo that fades fully to nothing
+        // so there is no hard-edged white blob, plus a TIGHT inner glow for punch near the disc.
+        sctx.globalCompositeOperation='lighter';
+        const wideR=r*6.5; sctx.globalAlpha=0.15*clamp(C.sunArc+0.35,0,1); tintDraw(glowSprite,x-wideR,y-wideR,wideR*2,wideR*2,P.light);
+        const inR=r*2.7; sctx.globalAlpha=0.5*clamp(C.sunArc+0.28,0,1); tintDraw(glowSprite,x-inR,y-inR,inR*2,inR*2,P.light);
+        sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
+        // crisp white-hot disc with a warm rim, offset-lit for a little dimensionality (the moon's trick).
+        // Core stays near-white at every hour (so it never turns into a muddy peach ball); only the RIM
+        // carries the ambient warmth, so it naturally goes gold at golden hour without going muddy at noon.
+        const dg=sctx.createRadialGradient(x-r*0.16,y-r*0.16,0,x,y,r); dg.addColorStop(0,'rgba(255,253,246,1)'); dg.addColorStop(0.62,'rgba(255,244,214,1)'); dg.addColorStop(1,rgb(P.light,1));
+        sctx.fillStyle=dg; sctx.beginPath(); sctx.arc(x,y,r,0,7); sctx.fill();
         obj={x,y,r,tint:P.light,alt:C.sunArc,kind:'sun'}; }
       if(C.moonAbove){ const x=C.moonX*W, y=horizonY-(horizonY*0.03+C.moonArc*horizonY*0.80), r=lerp(18,26,C.moonArc), moonTint=[214,224,240];
         sctx.globalCompositeOperation='lighter'; const haloR=r*3.6; sctx.globalAlpha=0.32*clamp(C.moonArc+0.3,0,1)*clamp(P.starK+0.4,0,1); tintDraw(glowSprite,x-haloR,y-haloR,haloR*2,haloR*2,moonTint); sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
@@ -1181,8 +1187,7 @@
       // just the two Mokes on an open horizon: darkest of all, each with its soft lit crest rim
       fillIsle(nui,horizonY,isleColor(P,0.34)); fillIsle(iki,horizonY,isleColor(P,0.30));
       rimIsle(nui,P); rimIsle(iki,P); }
-    // ---- sea: base gradient + one soft blurred reflection + a soft glitter beam + ripples ----
-    let mirrorCanvas, mctx, blurCanvas, blurCtx;    // built in resize(); CSS-px offscreens for the reflection
+    // ---- sea: base gradient + a soft glitter beam under the sun/moon + ripples (no mirror reflection) ----
     // a soft reflected-light column under the sun/moon plus a few elongated glints (no fillRect specks)
     function drawGlitter(P,body,time,seaH){ const bx=body.x, tint=body.tint;
       sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,seaH); sctx.clip(); sctx.globalCompositeOperation='lighter';
@@ -1196,15 +1201,9 @@
       sctx.restore(); sctx.globalCompositeOperation='source-over'; }
     function drawSea(P,body,time){ const seaBot=shoreY, seaH=seaBot-horizonY;   // the sea now stops at the shoreline; the sand is drawn on top of the bottom band
       const g=sctx.createLinearGradient(0,horizonY,0,seaBot); g.addColorStop(0,rgb(P.seaTop)); g.addColorStop(0.5,rgb(lerpRGB(P.seaTop,P.seaDeep,0.5))); g.addColorStop(1,rgb(P.seaDeep)); sctx.fillStyle=g; sctx.fillRect(0,horizonY,W,seaH);
-      if(!S.lite){                                                               // capture the sky+land band, blur it cheap, blit it ONCE flipped (no band loop = no stripes)
-        mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,W,horizonY);
-        mctx.drawImage(scv,0,0,Math.round(W*DPR),Math.round(horizonY*DPR),0,0,W,horizonY);   // SOURCE rect is DEVICE px (scv is DPR-sized); DEST is CSS px on the un-scaled offscreen
-        blurCtx.setTransform(1,0,0,1,0,0); blurCtx.clearRect(0,0,blurCanvas.width,blurCanvas.height); blurCtx.imageSmoothingEnabled=true;
-        blurCtx.drawImage(mirrorCanvas,0,0,W,horizonY,0,0,blurCanvas.width,blurCanvas.height);
-        const wob=reduce?0:Math.sin(time*0.6)*2, squash=1.08;                    // one calm horizontal wobble + a gentle vertical smear
-        sctx.save(); sctx.beginPath(); sctx.rect(0,horizonY,W,seaH); sctx.clip(); sctx.globalAlpha=0.42; sctx.imageSmoothingEnabled=true;
-        sctx.translate(wob,horizonY*2); sctx.scale(1,-1); sctx.drawImage(blurCanvas,0,0,blurCanvas.width,blurCanvas.height,0,0,W,horizonY*squash);
-        sctx.restore(); sctx.globalAlpha=1; }
+      // (The full-scene mirror reflection was removed: reflecting the dark islands read as murky shards
+      //  and clashed with the glitter path. The sea is now a clean gradient lit by the sun/moon glitter
+      //  beam, foam and ripples below, which reads far calmer + more polished.)
       const hz=sctx.createLinearGradient(0,horizonY,0,horizonY+seaH*0.32); hz.addColorStop(0,rgb(P.horizon,0.5)); hz.addColorStop(1,rgb(P.horizon,0)); sctx.fillStyle=hz; sctx.fillRect(0,horizonY,W,seaH*0.32);   // horizon haze wash sinks contrast + hides the seam
       if(body) drawGlitter(P,body,time,seaH);
       drawRipples(seaH,time);
@@ -1217,7 +1216,7 @@
       for(const rp of ripples){ const k=rp.life, rad=(1-k)*70+8; sctx.strokeStyle='rgba(200,240,220,'+(0.30*k)+')'; sctx.lineWidth=1.4; sctx.beginPath(); sctx.ellipse(rp.x,rp.y,rad,rad*(rp.y>horizonY?0.32:0.7),0,0,6.2832); sctx.stroke(); }
       sctx.globalCompositeOperation='source-over'; sctx.restore(); }
     // ---- fireworks (zen mode): a kid TAPS the sky and a rocket climbs from the shore to that spot and
-    //      bursts. Drawn just before the sea so the mirror-calm water catches every bloom. ----
+    //      bursts. Drawn just before the sea so the sea band paints over any spark below the horizon. ----
     let rockets=[], sparks=[], lastDrawT=0;
     const FW_COLORS=[[170,90,255],[96,240,150],[255,205,90],[255,110,185],[110,235,225],[205,120,255]];
     // one rocket, straight up from the horizon under the tap, timed to burst AT the tapped point
@@ -1357,7 +1356,7 @@
     function draw(time){ if(!W) return; const P=paletteAt(sceneT), C=celestial(sceneT);
       const fdt=lastDrawT? Math.min(0.05,time-lastDrawT):0; lastDrawT=time; updateFireworks(fdt); updateAurora(fdt); updateWeather(fdt,P);
       drawSky(P); drawStars(P,time); drawMeteors(P); drawAuroraStrokes(time); drawClouds(P,time); drawBirds(P,time); const body=drawCelestial(P,C); drawLand(P); drawHorizonGlow(P);
-      drawFireworks(time);         // before drawSea so the mirror-calm water reflects every bloom
+      drawFireworks(time);         // before drawSea (the sea band paints over any spark below the horizon)
       drawSea(P,body,time); drawShore(P,time); drawRain(); drawFlash(); }
     return { resize, frame, begin, easeTo, release, setTime, live, isPinned, addRipple, popFirework, auroraDown, auroraMove, auroraUp, clearZenArt, horizon:()=>horizonY, _t:()=>sceneT };
   })();
@@ -1570,6 +1569,12 @@
 
   // Options / Lab are ONE accordion: opening a panel closes its sibling; tapping the open one closes it.
   // (The old independent toggles let both panels stack open at once.)
+  // Flag the dock when its content actually overflows (any orientation/height). In landscape this is the
+  // ONLY time Zen | Minimal need pinning to the visible bottom; when the rail fits, they stay clean chips
+  // with no frosted band (the near-black band J flagged only ever needed to exist while scrolling).
+  const dockEl=document.getElementById('dock');
+  function syncDockScroll(){ dockEl.classList.remove('scrolling');   // measure the UN-padded natural height first, so the sticky footer's own padding can't self-latch the class (one threshold, no hysteresis)
+    dockEl.classList.toggle('scrolling', dockEl.scrollHeight > dockEl.clientHeight + 1); }
   function setPanel(which){
     const optsOn=which==='opts', labOn=which==='lab';
     document.getElementById('optsrow').classList.toggle('on',optsOn);
@@ -1577,6 +1582,7 @@
     document.getElementById('opts').setAttribute('aria-pressed',optsOn?'true':'false');
     document.getElementById('lab').setAttribute('aria-pressed',labOn?'true':'false');
     S.depth = labOn?'lab':'explore';
+    syncDockScroll();
   }
   document.getElementById('opts').addEventListener('click',()=>{
     setPanel(document.getElementById('optsrow').classList.contains('on')? null : 'opts'); });
@@ -1971,12 +1977,12 @@
   }
 
   // Re-measure whenever the BOARD CONTAINER changes size, not only on window 'resize'. Toggling
-  // Lab/Colors, the portrait/landscape grid swap, and the dock reflow all resize .cabinet WITHOUT
+  // Options/Lab, the portrait/landscape grid swap, and the dock reflow all resize .cabinet WITHOUT
   // firing 'resize', which would otherwise leave the canvas rendering at the stale old size. Runs
   // synchronously; safe from ResizeObserver feedback loops because measure() only resizes the canvas
   // and .cabinet is a grid track whose size the canvas cannot change (overflow:hidden). Geometry-only
   // (measure + layoutAll, never buildBoards) so the histograms survive a rotate/toggle.
-  function remeasure(){ measure(); layoutAll(); }
+  function remeasure(){ measure(); layoutAll(); syncDockScroll(); }
   if('ResizeObserver' in window){ new ResizeObserver(remeasure).observe(cvs.parentElement); }
   window.addEventListener('resize', ()=>{ remeasure(); Scene.resize(); });
   window.addEventListener('orientationchange', ()=>{ remeasure(); Scene.resize(); });
