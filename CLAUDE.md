@@ -10,9 +10,12 @@ fat-tails depth lives behind a **Lab** toggle. The teaching arc is: a *fair* boa
 factory; break independence or the fixed step size and the bell dies (Mediocristan to Extremistan).
 
 Since the Learn push there are two top-level modes behind one `Learn | Play` seg at the top of
-the dock: **Play** is the untouched sandbox; **Learn** is a six-chapter seaside story (waves =
-bell, giant wave = scary tail, treasure ashore = lucky tail) driven by a thin controller over the
-same engine. Sigma is taught exactly once, in chapter 2, as "steps from home".
+the dock: **Play** is the untouched sandbox; **Learn** is a five-chapter seaside story (waves =
+bell, push the hill around, giant wave = scary tail, two tails = treasure ashore + scary tail, your
+turn) driven by a thin controller over the same engine. The old sixth chapter that taught sigma
+("steps from home") was dropped in the beat rewrite; Learn now stays kid-plain and never says sigma
+(it survives only in the adult Lab readouts). Each chapter plays as ordered BEATS: one short line +
+one thing on the board, ending in a `hands:true` tinker beat with a completion gate.
 
 Credits the project leans on: **Galton** (the 1877 quincunx), **Mandelbrot** (heavy tails,
 Mediocristan/Extremistan), **Taleb** (fat tails as a worldview). See README, which leads with the
@@ -35,8 +38,11 @@ Mediocristan/Extremistan), **Taleb** (fat tails as a worldview). See README, whi
   build gradients per frame in the hot loop.
 - **Preserve the layered-depth UX**: kids get the simple toy; the Lab row (`#labrow`) is hidden
   until Lab mode reveals the levers.
-- **Preserve the "one teaching line in the insight strip" pattern** (`setInsight`, the `#insight`
-  element). Every lever change says one plain sentence there.
+- **Preserve the "one teaching line" pattern** (`setInsight`). The VISIBLE `#insight` strip was retired
+  (Play stays clean; Learn teaches via on-board seaside labels + beats), but `setInsight` still feeds a
+  visually-hidden `#insightlive` `aria-live="polite"` region so screen-reader users in Play still hear one
+  plain sentence per action (HTML is stripped). Keep that a11y path working; do not re-add a visible strip
+  without asking.
 
 ## Architecture (the seams, marked in comments)
 
